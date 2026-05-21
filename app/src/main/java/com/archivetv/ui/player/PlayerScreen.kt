@@ -1,5 +1,6 @@
 package com.archivetv.ui.player
 
+import android.graphics.Color
 import androidx.annotation.OptIn
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.*
@@ -7,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.archivetv.ArchiveTvApp
 import com.archivetv.playback.PlayerController
@@ -63,6 +65,9 @@ fun PlayerScreen(identifier: String, onExit: () -> Unit) {
                 setShowRewindButton(true)
                 setShowNextButton(false)
                 setShowPreviousButton(false)
+                resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                setBackgroundColor(Color.BLACK)
+                setShutterBackgroundColor(Color.BLACK)
                 requestFocus()
             }
         },
