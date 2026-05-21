@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -20,7 +21,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -95,7 +98,7 @@ private fun Sidebar(onSearch: () -> Unit) {
     Column(
         Modifier
             .fillMaxHeight()
-            .width(72.dp)
+            .width(140.dp)
             .padding(vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -122,11 +125,19 @@ private fun Hero(item: ArchiveItem, onClick: () -> Unit) {
 private fun CardRow(title: String, items: List<ArchiveItem>, onClick: (ArchiveItem) -> Unit) {
     Column {
         Text(title, style = MaterialTheme.typography.titleMedium)
-        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(items) { item ->
+        LazyRow(
+            modifier = Modifier.focusRestorer(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            itemsIndexed(items) { index, item ->
                 Card(
                     onClick = { onClick(item) },
-                    modifier = Modifier.width(160.dp).height(90.dp),
+                    modifier = Modifier
+                        .width(160.dp)
+                        .height(90.dp)
+                        .focusProperties {
+                            if (index == 0) left = FocusRequester.Cancel
+                        },
                 ) {
                     AsyncImage(
                         model = item.thumbnailUrl,

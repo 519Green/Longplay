@@ -52,6 +52,19 @@ fun PlayerScreen(identifier: String, onExit: () -> Unit) {
 
     AndroidView(
         modifier = Modifier.fillMaxSize(),
-        factory = { PlayerView(it).apply { player = controller.player } },
+        factory = { ctx ->
+            PlayerView(ctx).apply {
+                player = controller.player
+                useController = true
+                controllerAutoShow = true
+                controllerHideOnTouch = false
+                controllerShowTimeoutMs = 5_000
+                setShowFastForwardButton(true)
+                setShowRewindButton(true)
+                setShowNextButton(false)
+                setShowPreviousButton(false)
+                requestFocus()
+            }
+        },
     )
 }
