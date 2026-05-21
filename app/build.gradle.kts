@@ -37,6 +37,7 @@ dependencies {
     implementation(platform(libs.compose.bom))
     implementation(libs.compose.ui)
     implementation(libs.compose.ui.tooling)
+    implementation(libs.compose.material3)
     implementation(libs.tv.foundation)
     implementation(libs.tv.material)
     implementation(libs.lifecycle.viewmodel.compose)
