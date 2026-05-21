@@ -1,0 +1,10 @@
+{
+  "rows": [
+    { "title": "Classic Cinema", "collectionId": "feature_films" },
+    { "title": "Film Noir", "collectionId": "film_noir" },
+    { "title": "Sci-Fi & Horror", "collectionId": "SciFi_Horror" },
+    { "title": "Classic TV", "collectionId": "classic_tv" },
+    { "title": "Cartoons", "collectionId": "classic_cartoons" },
+    { "title": "Serials", "collectionId": "serials" }
+  ]
+}
