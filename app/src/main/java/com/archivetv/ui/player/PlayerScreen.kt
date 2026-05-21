@@ -68,6 +68,7 @@ fun PlayerScreen(identifier: String, onExit: () -> Unit) {
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 setBackgroundColor(Color.BLACK)
                 setShutterBackgroundColor(Color.BLACK)
+                keepScreenOn = true
                 requestFocus()
             }
         },
