@@ -1,5 +1,10 @@
 package com.archivetv.ui.search
 
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -29,6 +34,26 @@ fun SearchScreen(
     viewModel: SearchViewModel = searchViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val voiceLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.let { viewModel.search(it) }
+        }
+    }
+    fun startVoiceSearch() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(
+                RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                RecognizerIntent.LANGUAGE_MODEL_FREE_FORM,
+            )
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Speak a film or show title")
+        }
+        runCatching { voiceLauncher.launch(intent) }
+    }
     Column(Modifier.fillMaxSize().padding(24.dp)) {
         OutlinedTextField(
             value = state.query,
@@ -38,7 +63,10 @@ fun SearchScreen(
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { viewModel.submit() }),
         )
-        Button(onClick = viewModel::submit) { Text("Search") }
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = viewModel::submit) { Text("Search") }
+            Button(onClick = { startVoiceSearch() }) { Text("Voice Search") }
+        }
         state.error?.let { Text(it) }
         LazyVerticalGrid(columns = GridCells.Fixed(5),
             horizontalArrangement = Arrangement.spacedBy(12.dp),

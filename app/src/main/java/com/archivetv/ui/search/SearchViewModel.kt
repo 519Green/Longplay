@@ -21,6 +21,12 @@ class SearchViewModel(private val archive: ArchiveRepository) : ViewModel() {
 
     fun onQueryChange(q: String) { _state.value = _state.value.copy(query = q) }
 
+    /** Set the query (e.g. from voice input) and run the search in one step. */
+    fun search(text: String) {
+        _state.value = _state.value.copy(query = text)
+        submit()
+    }
+
     fun submit() {
         val q = _state.value.query.trim()
         if (q.isEmpty()) return
