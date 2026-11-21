@@ -7,6 +7,7 @@ import com.archivetv.domain.BrowseRow
 import com.archivetv.ui.common.ContentRow
 import com.archivetv.ui.common.ParallelRows
 import com.archivetv.ui.common.RowState
+import com.archivetv.data.ListenCard
 import com.archivetv.data.NextUp
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -22,6 +23,8 @@ data class NextUpCard(val item: ArchiveItem, val fileIndex: Int, val label: Stri
 data class HomeUiState(
     val continueWatching: List<ArchiveItem> = emptyList(),
     val nextUp: List<NextUpCard> = emptyList(),
+    /** Spoken-word items to come back to; reuses NextUpCard (label empty when resuming). */
+    val continueListening: List<NextUpCard> = emptyList(),
     val favorites: List<ArchiveItem> = emptyList(),
     val rows: List<ContentRow> = emptyList(),
     val hero: ArchiveItem? = null,
@@ -38,6 +41,7 @@ class HomeViewModel(
     continueWatching: Flow<List<ArchiveItem>>,
     favorites: Flow<List<ArchiveItem>>,
     nextUp: Flow<List<NextUp>> = emptyFlow(),
+    continueListening: Flow<List<ListenCard>> = emptyFlow(),
 ) : ViewModel() {
     private val rows = ParallelRows(viewModelScope, configuredRows, loadRow)
 
@@ -69,6 +73,20 @@ class HomeViewModel(
                     )
                 }
                 _state.update { it.copy(nextUp = cards) }
+            }
+        }
+        viewModelScope.launch {
+            continueListening.collect { list ->
+                learnTitles(list.map { it.identifier })
+                val cards = list.map { c ->
+                    val known = knownItems[c.identifier] ?: ArchiveItem(c.identifier, c.identifier)
+                    NextUpCard(
+                        item = known.copy(progress = c.progress),
+                        fileIndex = c.fileIndex,
+                        label = if (c.isNext) "Next: ${c.fileIndex + 1} of ${c.fileCount}" else "",
+                    )
+                }
+                _state.update { it.copy(continueListening = cards) }
             }
         }
         viewModelScope.launch {

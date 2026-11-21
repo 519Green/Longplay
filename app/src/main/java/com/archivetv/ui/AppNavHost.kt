@@ -218,6 +218,7 @@ fun AppNavHost(
                     onPlayFile = { id, index -> nav.navigate(Routes.player(id, index)) },
                     onOpenGroup = { nav.navigate(Routes.tiles(it)) },
                     onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                    onListen = ::playAudio,
                 )
             }
             composable(Routes.SECTION, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->

@@ -68,6 +68,7 @@ fun HomeScreen(
     onPlayFile: (String, Int) -> Unit,
     onOpenGroup: (String) -> Unit,
     onOpenLeaf: (String) -> Unit,
+    onListen: (String, Int) -> Unit = onPlayFile,
     viewModel: HomeViewModel = homeViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -83,6 +84,8 @@ fun HomeScreen(
         hero = state.hero,
         nextUp = state.nextUp,
         onPlayFile = onPlayFile,
+        continueListening = state.continueListening,
+        onListen = onListen,
         browseTiles = tiles,
         onItemClick = onItemClick,
         onRetry = viewModel::retry,
@@ -102,6 +105,8 @@ fun HomeContent(
     onSeeAll: ((ContentRow) -> Unit)? = null,
     nextUp: List<NextUpCard> = emptyList(),
     onPlayFile: (String, Int) -> Unit = { _, _ -> },
+    continueListening: List<NextUpCard> = emptyList(),
+    onListen: (String, Int) -> Unit = { _, _ -> },
 ) {
     val heroFocus = remember { FocusRequester() }
     // Focus content (not the drawer) once on first arrival; after that, focus
@@ -132,8 +137,11 @@ fun HomeContent(
         if (continueWatching.isNotEmpty()) {
             item(key = "continue") { CardRow("Continue Watching", continueWatching, onItemClick) }
         }
+        if (continueListening.isNotEmpty()) {
+            item(key = "continue-listening") { NextUpRow("Continue Listening", continueListening, onListen) }
+        }
         if (nextUp.isNotEmpty()) {
-            item(key = "next-up") { NextUpRow(nextUp, onPlayFile) }
+            item(key = "next-up") { NextUpRow("Next Up", nextUp, onPlayFile) }
         }
         if (favorites.isNotEmpty()) {
             item(key = "favorites") { CardRow("My List", favorites, onItemClick) }
@@ -146,9 +154,9 @@ fun HomeContent(
 }
 
 @Composable
-private fun NextUpRow(cards: List<NextUpCard>, onPlayFile: (String, Int) -> Unit) {
+private fun NextUpRow(title: String, cards: List<NextUpCard>, onPlayFile: (String, Int) -> Unit) {
     Column {
-        RowHeader("Next Up")
+        RowHeader(title)
         LazyRow(
             modifier = Modifier.focusRestorer(),
             contentPadding = rowPadding(),
@@ -157,7 +165,7 @@ private fun NextUpRow(cards: List<NextUpCard>, onPlayFile: (String, Int) -> Unit
             items(cards, key = { it.item.identifier }) { card ->
                 MediaCard(
                     item = card.item,
-                    subtitle = card.label,
+                    subtitle = card.label.ifEmpty { null },
                     onClick = { onPlayFile(card.item.identifier, card.fileIndex) },
                 )
             }
@@ -216,6 +224,7 @@ fun homeViewModel(): HomeViewModel {
                 continueWatching = library.observeContinueWatching(),
                 favorites = library.observeFavorites(),
                 nextUp = library.observeNextUp(),
+                continueListening = library.observeContinueListening(),
             ) as T
         }
     })

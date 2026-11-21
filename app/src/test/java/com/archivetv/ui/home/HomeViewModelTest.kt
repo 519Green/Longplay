@@ -1,5 +1,6 @@
 package com.archivetv.ui.home
 
+import com.archivetv.data.ListenCard
 import com.archivetv.data.NextUp
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.BrowseRow
@@ -33,7 +34,8 @@ class HomeViewModelTest {
         continueWatching: kotlinx.coroutines.flow.Flow<List<ArchiveItem>> = flowOf(emptyList()),
         lookup: suspend (List<String>) -> Map<String, ArchiveItem> = { emptyMap() },
         nextUp: kotlinx.coroutines.flow.Flow<List<NextUp>> = flowOf(emptyList()),
-    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()), nextUp)
+        continueListening: kotlinx.coroutines.flow.Flow<List<ListenCard>> = flowOf(emptyList()),
+    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()), nextUp, continueListening)
 
     @Test fun rowsStartLoadingAndPublishIndependently() = runTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
@@ -117,5 +119,28 @@ class HomeViewModelTest {
             lookup = { error("offline") },
         )
         assertThat(model.state.value.continueWatching.single().title).isEqualTo("x")
+    }
+
+    @Test fun continueListeningCardsAreTitledAndKeepProgress() = runTest {
+        val model = vm(
+            loadRow = { emptyList() },
+            continueListening = flowOf(listOf(ListenCard("adventures_holmes", 2, 12, 0.4f, isNext = false))),
+            lookup = { ids -> ids.associateWith { ArchiveItem(it, "Real $it") } },
+        )
+        val card = model.state.value.continueListening.single()
+        assertThat(card.item.title).isEqualTo("Real adventures_holmes")
+        assertThat(card.item.progress).isEqualTo(0.4f)
+        assertThat(card.fileIndex).isEqualTo(2)
+        assertThat(card.label).isEmpty()
+    }
+
+    @Test fun continueListeningNextCardSaysWhichFile() = runTest {
+        val model = vm(
+            loadRow = { emptyList() },
+            continueListening = flowOf(listOf(ListenCard("otr", 5, 973, null, isNext = true))),
+        )
+        val card = model.state.value.continueListening.single()
+        assertThat(card.fileIndex).isEqualTo(5)
+        assertThat(card.label).isEqualTo("Next: 6 of 973")
     }
 }
