@@ -13,6 +13,7 @@ import com.archivetv.domain.Catalog
 import com.archivetv.domain.CategoryNode
 import com.archivetv.data.db.AppDatabase
 import com.archivetv.data.db.MIGRATION_1_2
+import com.archivetv.data.db.MIGRATION_2_3
 import com.archivetv.domain.BrowseRow
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -38,12 +39,13 @@ class AppContainer(app: Application) {
 
     private val db = Room.databaseBuilder(
         app, AppDatabase::class.java, "archivetv.db"
-    ).addMigrations(MIGRATION_1_2).build()
+    ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
 
     val queryBuilder = SearchQueryBuilder()
 
     val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder)
     val libraryRepository = LibraryRepository(db.favoriteDao(), db.resumeDao())
+    val queueDao = db.queueDao()
 
     val catalog: Catalog =
         app.assets.open("browse_config.json").bufferedReader().use {

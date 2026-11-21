@@ -6,13 +6,31 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
-    entities = [FavoriteEntity::class, ResumeEntity::class],
-    version = 2,
+    entities = [FavoriteEntity::class, ResumeEntity::class, QueueEntryEntity::class, QueueStateEntity::class],
+    version = 3,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun favoriteDao(): FavoriteDao
     abstract fun resumeDao(): ResumeDao
+    abstract fun queueDao(): QueueDao
+}
+
+/** v3: resume rows record their media kind; the audio queue gets its own tables. */
+val MIGRATION_2_3 = object : Migration(2, 3) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE resume ADD COLUMN `kind` TEXT NOT NULL DEFAULT 'video'")
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `queue_entry` (`position` INTEGER NOT NULL, `identifier` TEXT NOT NULL, " +
+                "`fileName` TEXT NOT NULL, `title` TEXT NOT NULL, `itemTitle` TEXT NOT NULL, `durationSec` REAL, " +
+                "`kind` TEXT NOT NULL, `isLibriVox` INTEGER NOT NULL, `fileIndex` INTEGER NOT NULL, " +
+                "`fileCount` INTEGER NOT NULL, PRIMARY KEY(`position`))"
+        )
+        db.execSQL(
+            "CREATE TABLE IF NOT EXISTS `queue_state` (`id` INTEGER NOT NULL, `currentIndex` INTEGER NOT NULL, " +
+                "`positionMs` INTEGER NOT NULL, PRIMARY KEY(`id`))"
+        )
+    }
 }
 
 /**

@@ -67,7 +67,7 @@ class AppDatabaseTest {
         helper.writableDatabase.close()
 
         val migrated = Room.databaseBuilder(context, AppDatabase::class.java, name)
-            .addMigrations(MIGRATION_1_2)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
             .build()
         try {
             val rows = migrated.resumeDao().forItem("film")
@@ -80,5 +80,48 @@ class AppDatabaseTest {
             migrated.close()
             context.deleteDatabase(name)
         }
+    }
+
+    @Test fun migrationFromV2AddsKindAndQueueTables() = runTest {
+        val name = "migration-v2-test.db"
+        context.deleteDatabase(name)
+        val helper = FrameworkSQLiteOpenHelperFactory().create(
+            SupportSQLiteOpenHelper.Configuration.builder(context)
+                .name(name)
+                .callback(object : SupportSQLiteOpenHelper.Callback(2) {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        db.execSQL("CREATE TABLE IF NOT EXISTS `favorites` (`identifier` TEXT NOT NULL, `title` TEXT NOT NULL, `addedAt` INTEGER NOT NULL, PRIMARY KEY(`identifier`))")
+                        db.execSQL("CREATE TABLE IF NOT EXISTS `resume` (`identifier` TEXT NOT NULL, `fileName` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, `durationMs` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, `fileIndex` INTEGER NOT NULL, `fileCount` INTEGER NOT NULL, PRIMARY KEY(`identifier`, `fileName`))")
+                        db.execSQL("INSERT INTO resume VALUES ('show', 'e2.mp4', 60000, 600000, 5, 1, 3)")
+                    }
+                    override fun onUpgrade(db: SupportSQLiteDatabase, oldVersion: Int, newVersion: Int) = Unit
+                })
+                .build()
+        )
+        helper.writableDatabase.close()
+
+        val migrated = Room.databaseBuilder(context, AppDatabase::class.java, name)
+            .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+            .build()
+        try {
+            val rows = migrated.resumeDao().forItem("show")
+            assertThat(rows.single().kind).isEqualTo("video")
+            assertThat(rows.single().fileIndex).isEqualTo(1)
+            assertThat(migrated.queueDao().entries()).isEmpty()
+            assertThat(migrated.queueDao().state()).isNull()
+        } finally {
+            migrated.close()
+            context.deleteDatabase(name)
+        }
+    }
+
+    @Test fun queueReplaceAllRoundTrips() = runTest {
+        val dao = db.queueDao()
+        val e = QueueEntryEntity(0, "book", "ch1.mp3", "Ch 1", "Book", 60.0, "spoken", true, 0, 2)
+        dao.replaceAll(listOf(e, e.copy(position = 1, fileName = "ch2.mp3", fileIndex = 1)), QueueStateEntity(0, 1, 5000))
+        assertThat(dao.entries().map { it.fileName }).containsExactly("ch1.mp3", "ch2.mp3").inOrder()
+        assertThat(dao.state()).isEqualTo(QueueStateEntity(0, 1, 5000))
+        dao.replaceAll(emptyList(), QueueStateEntity(0, -1, 0))
+        assertThat(dao.entries()).isEmpty()
     }
 }

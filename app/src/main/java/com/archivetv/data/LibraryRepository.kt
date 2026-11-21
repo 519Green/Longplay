@@ -26,9 +26,9 @@ data class NextUp(val identifier: String, val nextIndex: Int, val fileCount: Int
 private fun latestPerItem(entries: List<ResumeEntity>): List<ResumeEntity> =
     entries.distinctBy { it.identifier }
 
-/** Items whose most recent file is part-way through, newest first. */
+/** Video items whose most recent file is part-way through, newest first. */
 fun continueWatching(entries: List<ResumeEntity>): List<ArchiveItem> =
-    latestPerItem(entries)
+    latestPerItem(entries.filter { it.kind == "video" })
         .filter { isResumable(it.positionMs, it.durationMs) }
         .map {
             ArchiveItem(
@@ -38,11 +38,35 @@ fun continueWatching(entries: List<ResumeEntity>): List<ArchiveItem> =
             )
         }
 
-/** Items whose most recent file was finished and that have more files after it. */
+/** Video items whose most recent file was finished and that have more files after it. */
 fun nextUp(entries: List<ResumeEntity>): List<NextUp> =
-    latestPerItem(entries)
+    latestPerItem(entries.filter { it.kind == "video" })
         .filter { isFinished(it.positionMs, it.durationMs) && it.fileIndex < it.fileCount - 1 }
         .map { NextUp(it.identifier, it.fileIndex + 1, it.fileCount) }
+
+/** A Continue Listening card: resume [fileIndex] at [progress], or start it fresh when [isNext]. */
+data class ListenCard(
+    val identifier: String,
+    val fileIndex: Int,
+    val fileCount: Int,
+    val progress: Float?,
+    val isNext: Boolean,
+)
+
+/**
+ * Spoken-word items (books, radio) to come back to, newest first: part-way
+ * through a file, or finished one with more after it. Music is left out.
+ */
+fun continueListening(entries: List<ResumeEntity>): List<ListenCard> =
+    latestPerItem(entries.filter { it.kind == "spoken" }).mapNotNull {
+        when {
+            isResumable(it.positionMs, it.durationMs) ->
+                ListenCard(it.identifier, it.fileIndex, it.fileCount, resumeFraction(it.positionMs, it.durationMs), false)
+            isFinished(it.positionMs, it.durationMs) && it.fileIndex < it.fileCount - 1 ->
+                ListenCard(it.identifier, it.fileIndex + 1, it.fileCount, null, true)
+            else -> null
+        }
+    }
 
 /**
  * Progress per file name for one item. A legacy v1 row (fileName "") counts
@@ -93,6 +117,9 @@ class LibraryRepository(
     fun observeNextUp(): Flow<List<NextUp>> =
         resumeDao.observeAll().map(::nextUp)
 
+    fun observeContinueListening(): Flow<List<ListenCard>> =
+        resumeDao.observeAll().map(::continueListening)
+
     /** Per-file progress for one item, keyed by file name. */
     fun observeProgress(id: String, fileNames: List<String>): Flow<Map<String, ResumeEntity>> =
         resumeDao.observeItem(id).map { progressByFile(it, fileNames) }
@@ -119,9 +146,10 @@ class LibraryRepository(
         fileCount: Int,
         positionMs: Long,
         durationMs: Long,
+        kind: String = "video",
     ) {
         resumeDao.upsert(
-            ResumeEntity(id, fileName, positionMs, durationMs, System.currentTimeMillis(), fileIndex, fileCount)
+            ResumeEntity(id, fileName, positionMs, durationMs, System.currentTimeMillis(), fileIndex, fileCount, kind)
         )
         // A real row now exists for this item; the migrated v1 row is superseded.
         resumeDao.delete(id, "")
