@@ -81,6 +81,11 @@ class ArchiveRepositoryTest {
         assertThat(item.year).isEqualTo("1955")
     }
 
+    @Test fun searchWithOnlySyntaxMakesNoRequest() = runTest {
+        assertThat(repo.search(" :() ", limit = 10)).isEmpty()
+        assertThat(server.requestCount).isEqualTo(0)
+    }
+
     @Test fun blankTitleFallsBackToIdentifier() = runTest {
         server.enqueue(MockResponse().setBody(
             """{"response":{"numFound":1,"docs":[{"identifier":"id4","title":"  "}]}}"""

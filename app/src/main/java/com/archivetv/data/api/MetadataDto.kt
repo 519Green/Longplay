@@ -20,4 +20,5 @@ data class MetadataFileDto(
     val name: String,
     val format: String? = null,
     val source: String? = null,
+    @StringOrList val height: List<String> = emptyList(),
 )

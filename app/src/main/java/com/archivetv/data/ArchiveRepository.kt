@@ -19,12 +19,15 @@ class ArchiveRepository(
             sort = "downloads desc",
         ).response.docs.map { it.toItem() }
 
-    suspend fun search(text: String, limit: Int): List<ArchiveItem> =
-        service.search(
-            query = queryBuilder.userSearch(text),
+    suspend fun search(text: String, limit: Int): List<ArchiveItem> {
+        val query = queryBuilder.userSearch(text)
+        if (query.isEmpty()) return emptyList()
+        return service.search(
+            query = query,
             rows = limit,
             sort = "downloads desc",
         ).response.docs.map { it.toItem() }
+    }
 
     suspend fun detail(identifier: String): ItemDetail {
         val dto = service.metadata(identifier)
