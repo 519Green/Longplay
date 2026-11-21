@@ -15,6 +15,7 @@ import com.archivetv.data.db.AppDatabase
 import com.archivetv.data.db.MIGRATION_1_2
 import com.archivetv.data.db.MIGRATION_2_3
 import com.archivetv.domain.BrowseRow
+import com.archivetv.playback.AudioConnection
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
@@ -46,6 +47,9 @@ class AppContainer(app: Application) {
     val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder)
     val libraryRepository = LibraryRepository(db.favoriteDao(), db.resumeDao())
     val queueDao = db.queueDao()
+
+    /** The audio player, shared by every screen; connected while MainActivity is started. */
+    val audio = AudioConnection(app, archiveRepository::detail, libraryRepository::progress)
 
     val catalog: Catalog =
         app.assets.open("browse_config.json").bufferedReader().use {

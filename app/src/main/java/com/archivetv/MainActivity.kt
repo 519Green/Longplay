@@ -47,6 +47,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        (application as ArchiveTvApp).container.audio.connect()
+    }
+
+    override fun onStop() {
+        (application as ArchiveTvApp).container.audio.disconnect()
+        super.onStop()
+    }
+
     /**
      * Remotes whose mic/search button sends KEYCODE_SEARCH to the foreground app
      * open in-app voice search. KEYCODE_VOICE_ASSIST is handled by the system

@@ -68,6 +68,8 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit) {
     }
 
     LaunchedEffect(identifier) {
+        // Video and the audio queue never play together; audio stays paused afterwards.
+        app.container.audio.pause()
         val detail = runCatching { app.container.archiveRepository.detail(identifier) }.getOrNull()
         val list = detail?.files.orEmpty()
         if (list.isEmpty()) { onExit(); return@LaunchedEffect }
