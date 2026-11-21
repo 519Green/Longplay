@@ -152,4 +152,28 @@ class ArchiveRepositoryTest {
         ))
         assertThat(repo.detail("f").kind).isEqualTo(ItemKind.VIDEO)
     }
+
+    @Test fun searchAudioMarksAudioAndCommunityUploads() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"response":{"numFound":2,"docs":[
+                {"identifier":"songs-of-leonard-cohen","title":"Songs Of Leonard Cohen","mediatype":"audio",
+                 "collection":["hifidelity_potpourri","hifidelity"]},
+                {"identifier":"adventures_holmes","title":"Holmes","mediatype":"audio","collection":"librivoxaudio"}]}}"""
+        ))
+        val items = repo.searchAudio("leonard cohen", limit = 40)
+        assertThat(items.map { it.isAudio }).containsExactly(true, true)
+        assertThat(items.map { it.isCommunity }).containsExactly(true, false).inOrder()
+        assertThat(server.takeRequest().path).contains("mediatype%3Aaudio")
+    }
+
+    @Test fun videoSearchMarksCommunityVideo() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"response":{"numFound":2,"docs":[
+                {"identifier":"Thundarr","title":"Thundarr","mediatype":"movies","collection":["opensource_movies"]},
+                {"identifier":"film","title":"Film","mediatype":"movies","collection":["feature_films"]}]}}"""
+        ))
+        val items = repo.search("thundarr", limit = 40)
+        assertThat(items.map { it.isCommunity }).containsExactly(true, false).inOrder()
+        assertThat(items.none { it.isAudio }).isTrue()
+    }
 }

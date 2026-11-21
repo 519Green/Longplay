@@ -31,6 +31,10 @@ import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.ui.theme.Dimens
+import com.archivetv.ui.theme.SectionIcons
+import androidx.tv.material3.Icon
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 /**
  * The one card used everywhere: thumbnail on a focus-scaled card, title and
@@ -43,7 +47,8 @@ fun MediaCard(
     modifier: Modifier = Modifier,
     cardModifier: Modifier = Modifier,
     width: Dp? = Dimens.CardWidth,
-    subtitle: String? = item.year,
+    subtitle: String? = listOfNotNull(item.year, "Community upload".takeIf { item.isCommunity })
+        .joinToString(" · ").ifEmpty { null },
 ) {
     StandardCardContainer(
         modifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth(),
@@ -111,6 +116,19 @@ private fun CardImage(item: ArchiveItem) {
                 contentScale = ContentScale.Crop,
                 onState = { failed = it is AsyncImagePainter.State.Error },
                 modifier = Modifier.fillMaxSize(),
+            )
+        }
+        if (item.isAudio) {
+            Icon(
+                SectionIcons.Headphones,
+                contentDescription = "Audio",
+                tint = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(6.dp)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.75f), RoundedCornerShape(4.dp))
+                    .padding(3.dp)
+                    .size(18.dp),
             )
         }
         item.progress?.let { fraction ->

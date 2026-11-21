@@ -49,6 +49,12 @@ class ArchiveRepository(
         ).response.docs.map { it.toItem() }
     }
 
+    suspend fun searchAudio(text: String, limit: Int): List<ArchiveItem> {
+        val query = queryBuilder.audioSearch(text)
+        if (query.isEmpty()) return emptyList()
+        return service.search(query = query, rows = limit, sort = "downloads desc").response.docs.map { it.toItem() }
+    }
+
     /** Looks up titles and years for known identifiers in one request. */
     suspend fun itemsByIds(ids: List<String>): Map<String, ArchiveItem> {
         if (ids.isEmpty()) return emptyMap()
@@ -86,7 +92,11 @@ class ArchiveRepository(
         identifier = identifier,
         title = cleanTitle(title, identifier),
         year = year.firstOrNull { it.isNotBlank() },
+        isAudio = mediatype == "audio" || mediatype == "etree",
+        isCommunity = collection.any { it in communityCollections },
     )
+
+    private val communityCollections = setOf("opensource_movies", "opensource", "hifidelity")
 
     private fun cleanTitle(titles: List<String>, identifier: String): String =
         titles.map(HtmlText::toPlain).firstOrNull { it.isNotBlank() } ?: identifier

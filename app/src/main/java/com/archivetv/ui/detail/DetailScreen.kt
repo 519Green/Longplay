@@ -74,6 +74,12 @@ fun DetailScreen(
     }
     val play: (String, Int?) -> Unit = if (state.isAudio) onPlayAudio else onPlay
     var menuFor by remember { mutableStateOf<Int?>(null) }
+    // The open menu's row button; focus goes back to it when the menu closes.
+    val menuButtonFocus = remember { FocusRequester() }
+    fun closeMenu() {
+        runCatching { menuButtonFocus.requestFocus() }
+        menuFor = null
+    }
     val item = state.item
     Box(Modifier.fillMaxSize()) {
         if (item != null) {
@@ -114,11 +120,12 @@ fun DetailScreen(
                             playing = nowPlaying?.current?.let { it.identifier == identifier && it.fileName == file.fileName } == true,
                             onClick = { play(identifier, index) },
                             onQueue = if (state.isAudio) ({ menuFor = if (menuFor == index) null else index }) else null,
+                            queueFocus = if (menuFor == index) menuButtonFocus else null,
                         )
                         if (menuFor == index) {
                             QueueMenu(
-                                onPlayNext = { menuFor = null; queue(next = true, fileIndex = index) },
-                                onAddToQueue = { menuFor = null; queue(next = false, fileIndex = index) },
+                                onPlayNext = { closeMenu(); queue(next = true, fileIndex = index) },
+                                onAddToQueue = { closeMenu(); queue(next = false, fileIndex = index) },
                             )
                         }
                     }
@@ -280,6 +287,7 @@ private fun EpisodeRow(
     playing: Boolean,
     onClick: () -> Unit,
     onQueue: (() -> Unit)?,
+    queueFocus: FocusRequester? = null,
 ) {
     Row(
         modifier = Modifier.padding(horizontal = 40.dp).fillMaxWidth(0.7f),
@@ -312,7 +320,10 @@ private fun EpisodeRow(
     )
     if (onQueue != null) {
         // Reached with D-pad Right from the row.
-        IconButton(onClick = onQueue) { Icon(Icons.Filled.Add, contentDescription = "Queue options") }
+        IconButton(
+            onClick = onQueue,
+            modifier = if (queueFocus != null) Modifier.focusRequester(queueFocus) else Modifier,
+        ) { Icon(Icons.Filled.Add, contentDescription = "Queue options") }
     }
     }
 }

@@ -120,6 +120,9 @@ fun AppNavHost(
     // so it never steals a screen's initial focus.
     var barFocusable by remember { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
+    // Again on every screen change: focus left behind by a closed screen must land
+    // in the new screen, not on the bar.
+    LaunchedEffect(backStack?.id) { barFocusable = false }
     // Sections share one route pattern; key them by id so the drawer can tell them apart.
     val route = backStack?.destination?.route.let { pattern ->
         if (pattern == Routes.SECTION) Routes.section(backStack?.arguments?.getString("id").orEmpty()) else pattern
@@ -191,8 +194,6 @@ fun AppNavHost(
             Modifier
                 .fillMaxSize()
                 .padding(start = if (topLevel) Dimens.DrawerCollapsed else 0.dp)
-                .focusRequester(contentFocus)
-                .focusRestorer()
         ) {
         Column(Modifier.fillMaxSize()) {
         val np = nowPlaying
@@ -210,6 +211,10 @@ fun AppNavHost(
                 .weight(1f)
                 .fillMaxWidth()
                 .onFocusChanged { if (it.hasFocus) barFocusable = true }
+                // The drawer's Right and focus restoration target the screens only,
+                // so entering content never lands on the mini bar above them.
+                .focusRequester(contentFocus)
+                .focusRestorer()
         ) {
         NavHost(nav, startDestination = Routes.HOME) {
             composable(Routes.HOME) {

@@ -128,4 +128,16 @@ class SearchQueryBuilderTest {
         assertThat(b.render(leaf, CategoryQuery(yearFrom = 1920, yearTo = 1929)))
             .isEqualTo("collection:(78rpm) AND year:[1920 TO 1929] AND mediatype:audio")
     }
+
+    @Test fun audioSearchCoversCuratedAudioAndHifidelityTitles() {
+        assertThat(b.audioSearch("leonard cohen")).isEqualTo(
+            "((collection:(librivoxaudio OR oldtimeradio OR 78rpm OR album_recordings) AND " +
+                "(title:(leonard cohen) OR subject:(leonard cohen) OR creator:(leonard cohen))) " +
+                "OR (collection:(hifidelity) AND (title:(leonard cohen) OR creator:(leonard cohen)))) AND mediatype:audio"
+        )
+    }
+
+    @Test fun audioSearchEmptyForSyntaxOnly() {
+        assertThat(b.audioSearch("\"()\"")).isEmpty()
+    }
 }

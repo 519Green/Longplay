@@ -21,12 +21,28 @@ class SearchQueryBuilder {
     fun collection(collectionId: String): String =
         "collection:($collectionId) AND $video"
 
+    /** Curated audio collections: matched on title, subject and creator (author, performer). */
+    private val curatedAudio = listOf("librivoxaudio", "oldtimeradio", "78rpm", "album_recordings")
+
+    /** High Fidelity Emporium (member-uploaded CD and record rips): title and creator only. */
+    private val communityAudio = listOf("hifidelity")
+
+    private fun terms(text: String) = text.replace(luceneSyntax, " ")
+        .split(Regex("\\s+"))
+        .filter { it.isNotBlank() && it !in operators }
+        .joinToString(" ")
+
+    /** Audio search for the Listen results. Empty when [text] has no searchable words. */
+    fun audioSearch(text: String): String {
+        val terms = terms(text)
+        if (terms.isEmpty()) return ""
+        return "((${anyOf(curatedAudio)} AND (title:($terms) OR subject:($terms) OR creator:($terms))) " +
+            "OR (${anyOf(communityAudio)} AND (title:($terms) OR creator:($terms)))) AND mediatype:audio"
+    }
+
     /** Returns an empty string when [text] has no searchable words. */
     fun userSearch(text: String): String {
-        val terms = text.replace(luceneSyntax, " ")
-            .split(Regex("\\s+"))
-            .filter { it.isNotBlank() && it !in operators }
-            .joinToString(" ")
+        val terms = terms(text)
         if (terms.isEmpty()) return ""
         return "((${anyOf(curated)} AND (title:($terms) OR subject:($terms) OR creator:($terms))) " +
             "OR (${anyOf(community)} AND title:($terms))) AND $video"

@@ -2,7 +2,7 @@ package com.archivetv.ui.search
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.archivetv.data.ArchiveRepository
+import kotlinx.coroutines.async
 import com.archivetv.domain.ArchiveItem
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,12 +10,19 @@ import kotlinx.coroutines.launch
 
 data class SearchUiState(
     val query: String = "",
-    val results: List<ArchiveItem> = emptyList(),
+    /** Video results. */
+    val watch: List<ArchiveItem> = emptyList(),
+    /** Audio results. */
+    val listen: List<ArchiveItem> = emptyList(),
     val loading: Boolean = false,
     val error: String? = null,
 )
 
-class SearchViewModel(private val archive: ArchiveRepository) : ViewModel() {
+/** Runs the video and audio searches in parallel; one failing still shows the other. */
+class SearchViewModel(
+    private val searchVideo: suspend (text: String, limit: Int) -> List<ArchiveItem>,
+    private val searchAudio: suspend (text: String, limit: Int) -> List<ArchiveItem>,
+) : ViewModel() {
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state
 
@@ -32,12 +39,16 @@ class SearchViewModel(private val archive: ArchiveRepository) : ViewModel() {
         if (q.isEmpty()) return
         _state.value = _state.value.copy(loading = true, error = null)
         viewModelScope.launch {
-            runCatching { archive.search(q, limit = 40) }
-                .onSuccess { _state.value = _state.value.copy(loading = false, results = it) }
-                .onFailure {
-                    _state.value = _state.value.copy(loading = false,
-                        error = "Search failed. Try again.")
-                }
+            val video = async { runCatching { searchVideo(q, 40) } }
+            val audio = async { runCatching { searchAudio(q, 40) } }
+            val w = video.await()
+            val l = audio.await()
+            _state.value = _state.value.copy(
+                loading = false,
+                watch = w.getOrDefault(emptyList()),
+                listen = l.getOrDefault(emptyList()),
+                error = if (w.isFailure && l.isFailure) "Search failed. Try again." else null,
+            )
         }
     }
 }

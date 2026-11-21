@@ -7,6 +7,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.tv.material3.MaterialTheme
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
@@ -58,8 +60,8 @@ fun SearchScreen(
         submits++
         viewModel.submit()
     }
-    LaunchedEffect(state.results, submits) {
-        if (submits > focusedSubmit && state.results.isNotEmpty()) {
+    LaunchedEffect(state.watch, state.listen, submits) {
+        if (submits > focusedSubmit && (state.watch.isNotEmpty() || state.listen.isNotEmpty())) {
             focusedSubmit = submits
             runCatching { firstResultFocus.requestFocus() }
         }
@@ -103,7 +105,7 @@ fun SearchScreen(
         OutlinedTextField(
             value = state.query,
             onValueChange = viewModel::onQueryChange,
-            label = { androidx.compose.material3.Text("Search films & TV") },
+            label = { androidx.compose.material3.Text("Search films, TV, books, radio and music") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { submit() }),
@@ -131,13 +133,36 @@ fun SearchScreen(
             horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
             verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
         ) {
-            itemsIndexed(state.results, key = { _, it -> it.identifier }) { index, item ->
-                MediaCard(
-                    item = item,
-                    onClick = { onItemClick(item) },
-                    width = null,
-                    cardModifier = if (index == 0) Modifier.focusRequester(firstResultFocus) else Modifier,
-                )
+            // First result overall gets focus after a search: Watch's first, else Listen's.
+            if (state.watch.isNotEmpty()) {
+                item(key = "watch-header", span = { GridItemSpan(maxLineSpan) }) {
+                    Text("Watch", style = MaterialTheme.typography.titleMedium)
+                }
+                itemsIndexed(state.watch, key = { _, it -> "w-" + it.identifier }) { index, item ->
+                    MediaCard(
+                        item = item,
+                        onClick = { onItemClick(item) },
+                        width = null,
+                        cardModifier = if (index == 0) Modifier.focusRequester(firstResultFocus) else Modifier,
+                    )
+                }
+            }
+            if (state.listen.isNotEmpty()) {
+                item(key = "listen-header", span = { GridItemSpan(maxLineSpan) }) {
+                    Text("Listen", style = MaterialTheme.typography.titleMedium)
+                }
+                itemsIndexed(state.listen, key = { _, it -> "l-" + it.identifier }) { index, item ->
+                    MediaCard(
+                        item = item,
+                        onClick = { onItemClick(item) },
+                        width = null,
+                        cardModifier = if (index == 0 && state.watch.isEmpty()) {
+                            Modifier.focusRequester(firstResultFocus)
+                        } else {
+                            Modifier
+                        },
+                    )
+                }
             }
         }
     }
@@ -149,6 +174,6 @@ fun searchViewModel(): SearchViewModel {
     return viewModel(factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SearchViewModel(app.container.archiveRepository) as T
+            SearchViewModel(app.container.archiveRepository::search, app.container.archiveRepository::searchAudio) as T
     })
 }

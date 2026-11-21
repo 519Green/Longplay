@@ -17,4 +17,6 @@ data class SearchDocDto(
     val identifier: String,
     @StringOrList val title: List<String> = emptyList(),
     @StringOrList val year: List<String> = emptyList(),
+    val mediatype: String? = null,
+    @StringOrList val collection: List<String> = emptyList(),
 )
