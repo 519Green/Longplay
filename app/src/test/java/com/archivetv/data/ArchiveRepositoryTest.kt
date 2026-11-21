@@ -1,6 +1,7 @@
 package com.archivetv.data
 
 import com.archivetv.data.api.InternetArchiveService
+import com.archivetv.domain.ItemKind
 import com.google.common.truth.Truth.assertThat
 import com.archivetv.data.api.archiveMoshi
 import kotlinx.coroutines.test.runTest
@@ -122,5 +123,33 @@ class ArchiveRepositoryTest {
             """{"response":{"numFound":1,"docs":[{"identifier":"id4","title":"  "}]}}"""
         ))
         assertThat(repo.search("x", limit = 10).single().title).isEqualTo("id4")
+    }
+
+    @Test fun detailOfAudiobookIsSpokenAndLibriVox() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Holmes","mediatype":"audio","collection":["librivoxaudio","audio_bookspoetry"]},
+                "files":[{"name":"ch01.mp3","format":"VBR MP3","source":"original"}]}"""
+        ))
+        val detail = repo.detail("adventures_holmes")
+        assertThat(detail.kind).isEqualTo(ItemKind.SPOKEN)
+        assertThat(detail.isLibriVox).isTrue()
+        assertThat(detail.files.single().fileName).isEqualTo("ch01.mp3")
+    }
+
+    @Test fun detailOfSingleCollectionStringIsMusic() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Side","collection":"78rpm"},
+                "files":[{"name":"side.mp3","format":"VBR MP3","source":"original"}]}"""
+        ))
+        val detail = repo.detail("side")
+        assertThat(detail.kind).isEqualTo(ItemKind.MUSIC)
+        assertThat(detail.isLibriVox).isFalse()
+    }
+
+    @Test fun detailOfFilmIsVideo() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Film","collection":["feature_films"]},"files":[{"name":"f.mp4","format":"h.264"}]}"""
+        ))
+        assertThat(repo.detail("f").kind).isEqualTo(ItemKind.VIDEO)
     }
 }

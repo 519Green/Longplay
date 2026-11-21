@@ -3,10 +3,17 @@ package com.archivetv.data
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.SearchDocDto
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.ItemKind
+import com.archivetv.domain.itemKind
 import com.archivetv.domain.PlayableFile
 
 /** An item and its playable files in play order (one for a film, many for a series). */
-data class ItemDetail(val item: ArchiveItem, val files: List<PlayableFile>)
+data class ItemDetail(
+    val item: ArchiveItem,
+    val files: List<PlayableFile>,
+    val kind: ItemKind = ItemKind.VIDEO,
+    val isLibriVox: Boolean = false,
+)
 
 data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
 
@@ -66,7 +73,13 @@ class ArchiveRepository(
             year = meta?.year?.firstOrNull { it.isNotBlank() },
             description = description.ifBlank { null },
         )
-        return ItemDetail(item, fileSelector.selectAll(identifier, dto.files))
+        val collections = meta?.collection.orEmpty()
+        return ItemDetail(
+            item = item,
+            files = fileSelector.selectAll(identifier, dto.files),
+            kind = itemKind(collections, fileSelector.hasVideo(dto.files)),
+            isLibriVox = "librivoxaudio" in collections,
+        )
     }
 
     private fun SearchDocDto.toItem() = ArchiveItem(

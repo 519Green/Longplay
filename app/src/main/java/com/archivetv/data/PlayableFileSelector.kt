@@ -22,24 +22,70 @@ class PlayableFileSelector {
         selectAll(identifier, files).firstOrNull()
 
     /**
-     * Every distinct video in the item, in natural file-name order. IA stores
-     * several derivatives of each upload (h.264, 512kb, Ogg) that point back to
-     * it through `original`; each group contributes its best playable file.
+     * Every distinct video in the item, in natural file-name order; if the item
+     * has no video, every distinct audio file instead (see [selectAudio]). IA
+     * stores several derivatives of each upload (h.264, 512kb, Ogg) that point
+     * back to it through `original`; each group contributes its best file.
      */
     fun selectAll(identifier: String, files: List<MetadataFileDto>): List<PlayableFile> =
+        if (hasVideo(files)) selectVideo(identifier, files) else selectAudio(identifier, files)
+
+    fun hasVideo(files: List<MetadataFileDto>): Boolean = files.any { extensionRank(it) >= 0 }
+
+    private fun selectVideo(identifier: String, files: List<MetadataFileDto>): List<PlayableFile> =
         files
             .filter { extensionRank(it) >= 0 }
             .groupBy { groupKey(it) }
             .map { (_, group) -> group.sortedWith(best).first() }
             .sortedWith(compareBy(NaturalOrder) { it.name })
-            .map { f ->
-                PlayableFile(
-                    identifier = identifier,
-                    fileName = f.name,
-                    title = f.title.firstOrNull { it.isNotBlank() }?.trim() ?: displayName(f.name),
-                    durationSec = parseDurationSec(f.length.firstOrNull()),
-                )
-            }
+            .map { f -> f.toPlayable(identifier, f.title) }
+
+    private val audioExtensions = listOf(".mp3", ".ogg", ".m4a", ".flac")
+    private val audioFormatRank = listOf("vbr mp3", "128kbps mp3", "64kbps mp3")
+
+    private fun audioRank(f: MetadataFileDto): Int {
+        val byFormat = audioFormatRank.indexOf(f.format?.trim()?.lowercase())
+        if (byFormat >= 0) return byFormat
+        return audioFormatRank.size + audioExtensions.indexOf(extension(f))
+    }
+
+    /**
+     * Chapters, episodes or tracks. MP3 beats Ogg, M4A and FLAC (bandwidth);
+     * the whole-book `.m4b` LibriVox adds is used only when nothing else plays.
+     * Album tracks follow `track` when every file has a distinct one, since
+     * file names are often alphabetical rather than in play order.
+     */
+    private fun selectAudio(identifier: String, files: List<MetadataFileDto>): List<PlayableFile> {
+        val groups = files.filter { extension(it) in audioExtensions }.groupBy { groupKey(it) }.values
+        if (groups.isEmpty()) {
+            return files.filter { extension(it) == ".m4b" }
+                .sortedWith(compareBy(NaturalOrder) { it.name })
+                .map { it.toPlayable(identifier, it.title) }
+        }
+        val picked = groups.map { g -> g.minBy(::audioRank) to g.flatMap { it.title } }
+        val tracks = picked.map { (f, _) -> trackNumber(f) }
+        val byTrack = tracks.none { it == null } && tracks.toSet().size == tracks.size
+        val ordered = if (byTrack) {
+            picked.sortedBy { (f, _) -> trackNumber(f) }
+        } else {
+            picked.sortedWith(compareBy(NaturalOrder) { (f, _) -> f.name })
+        }
+        return ordered.map { (f, titles) -> f.toPlayable(identifier, f.title + titles) }
+    }
+
+    private fun trackNumber(f: MetadataFileDto): Int? =
+        f.track.firstOrNull()?.let { leadingNumber.find(it)?.groupValues?.get(1)?.toIntOrNull() }
+
+    private val leadingNumber = Regex("^\\s*(\\d+)")
+
+    private fun MetadataFileDto.toPlayable(identifier: String, titles: List<String>) = PlayableFile(
+        identifier = identifier,
+        fileName = name,
+        title = titles.firstOrNull { it.isNotBlank() }?.trim() ?: displayName(name),
+        durationSec = parseDurationSec(length.firstOrNull()),
+    )
+
+    private fun extension(f: MetadataFileDto) = "." + f.name.substringAfterLast('.', "").lowercase()
 
     /**
      * Files that are versions of the same video share a key: the original's
@@ -49,7 +95,7 @@ class PlayableFileSelector {
      */
     private fun groupKey(f: MetadataFileDto): String {
         val base = if (f.source == "derivative" && f.original != null) f.original else f.name
-        return base.substringBeforeLast('.').removeSuffix("_512kb").lowercase()
+        return base.substringBeforeLast('.').removeSuffix("_512kb").removeSuffix("_64kb").lowercase()
     }
 
     private fun extensionRank(f: MetadataFileDto): Int =
