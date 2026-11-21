@@ -37,7 +37,7 @@ class SearchQueryBuilder {
      * order is fixed so the output is stable and testable.
      */
     fun render(query: CategoryQuery, facet: CategoryQuery? = null): String =
-        (clauses(query) + facet?.let(::clauses).orEmpty() + video).joinToString(" AND ")
+        (clauses(query) + facet?.let(::clauses).orEmpty() + "mediatype:${query.mediatype}").joinToString(" AND ")
 
     private fun clauses(q: CategoryQuery): List<String> = buildList {
         if (q.collections.isNotEmpty()) add(anyOf(q.collections))

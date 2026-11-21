@@ -111,7 +111,7 @@ class CatalogLoaderTest {
         // Unit tests run with the module directory as working directory.
         val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
         assertThat(catalog.sections.map { it.id })
-            .containsExactly("movies", "tv", "animation", "educational").inOrder()
+            .containsExactly("movies", "tv", "animation", "educational", "listen").inOrder()
         assertThat(catalog.home).isNotEmpty()
         assertThat(catalog.allLeaves.size).isAtLeast(40)
         // Every leaf narrows by at least a collection, title, creator or sponsor.
@@ -129,5 +129,52 @@ class CatalogLoaderTest {
         // A leaf with an empty query object still parses; scope is checked by the bundled test.
         val c = loader.parse(valid)
         assertThat(c.node("show-dragnet")).isInstanceOf(CategoryNode.Leaf::class.java)
+    }
+
+    private fun oneLeaf(extra: String) = """
+    { "version": 2, "sections": [
+      { "id": "listen", "title": "Listen", "children": [
+        { "id": "a", "title": "A", "query": { "collections": ["librivoxaudio"] $extra } }
+      ]}
+    ]}
+    """
+
+    @Test fun parsesMediatypeAndPlayAll() {
+        val json = """
+        { "version": 2, "sections": [
+          { "id": "listen", "title": "Listen", "children": [
+            { "id": "a", "title": "A", "playAll": true,
+              "query": { "collections": ["78rpm"], "mediatype": "audio" } }
+          ]}
+        ]}
+        """
+        val leaf = loader.parse(json).leaf("a")!!
+        assertThat(leaf.query.mediatype).isEqualTo("audio")
+        assertThat(leaf.playAll).isTrue()
+    }
+
+    @Test fun mediatypeDefaultsToMovies() {
+        val leaf = loader.parse(oneLeaf("")).leaf("a")!!
+        assertThat(leaf.query.mediatype).isEqualTo("movies")
+        assertThat(leaf.playAll).isFalse()
+    }
+
+    @Test fun rejectsUnknownMediatype() {
+        assertThrows(IllegalArgumentException::class.java) {
+            loader.parse(oneLeaf(", \"mediatype\": \"texts\""))
+        }
+    }
+
+    @Test fun bundledCatalogHasListenSection() {
+        val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
+        assertThat(catalog.sections.map { it.id }).contains("listen")
+        val listen = catalog.group("listen")!!
+        fun leaves(n: CategoryNode): List<CategoryNode.Leaf> = when (n) {
+            is CategoryNode.Leaf -> listOf(n)
+            is CategoryNode.Group -> n.children.flatMap(::leaves)
+        }
+        val all = leaves(listen)
+        assertThat(all).isNotEmpty()
+        all.forEach { assertWithMessage(it.id).that(it.query.mediatype).isEqualTo("audio") }
     }
 }

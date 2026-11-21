@@ -1606,6 +1606,733 @@
           "facets": "decade"
         }
       ]
+    },
+    {
+      "id": "listen",
+      "title": "Listen",
+      "children": [
+        {
+          "id": "listen-audiobooks-popular",
+          "title": "Popular Audiobooks",
+          "query": {
+            "collections": [
+              "librivoxaudio"
+            ],
+            "mediatype": "audio"
+          }
+        },
+        {
+          "id": "listen-radio-popular",
+          "title": "Popular Radio",
+          "query": {
+            "collections": [
+              "oldtimeradio"
+            ],
+            "mediatype": "audio"
+          }
+        },
+        {
+          "id": "listen-cylinders",
+          "title": "Cylinder Recordings",
+          "query": {
+            "collections": [
+              "78rpm"
+            ],
+            "subjectAny": [
+              "cylinder"
+            ],
+            "mediatype": "audio"
+          },
+          "playAll": true
+        },
+        {
+          "id": "listen-audiobooks",
+          "title": "Audiobooks",
+          "children": [
+            {
+              "id": "book-mystery",
+              "title": "Mystery",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "mystery"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-detective",
+              "title": "Detective",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "detective"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-scifi",
+              "title": "Science Fiction",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "science fiction"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-horror",
+              "title": "Horror",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "horror"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-adventure",
+              "title": "Adventure",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "adventure"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-humor",
+              "title": "Humor",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "humor"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-short-stories",
+              "title": "Short Stories",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "short stories"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-children",
+              "title": "Children",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "children"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-poetry",
+              "title": "Poetry",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "poetry"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "book-history",
+              "title": "History",
+              "query": {
+                "collections": [
+                  "librivoxaudio"
+                ],
+                "subjectAny": [
+                  "history"
+                ],
+                "mediatype": "audio"
+              }
+            }
+          ]
+        },
+        {
+          "id": "listen-radio-shows",
+          "title": "Radio Shows",
+          "children": [
+            {
+              "id": "radio-show-otrr",
+              "title": "Old Time Radio Researchers",
+              "query": {
+                "collections": [
+                  "lumedwards"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-jack-benny",
+              "title": "Jack Benny",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "titleAny": [
+                  "Jack Benny"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-johnny-dollar",
+              "title": "Yours Truly, Johnny Dollar",
+              "query": {
+                "collections": [
+                  "ytjdradio"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-suspense",
+              "title": "Suspense",
+              "query": {
+                "collections": [
+                  "suspenseradio"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-fibber-mcgee",
+              "title": "Fibber McGee and Molly",
+              "query": {
+                "collections": [
+                  "fibbermcgee"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-abbott-costello",
+              "title": "Abbott and Costello",
+              "query": {
+                "collections": [
+                  "abbottandcostelloradio"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-bob-and-ray",
+              "title": "Bob and Ray",
+              "query": {
+                "collections": [
+                  "bobandraytoaster"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-big-story",
+              "title": "The Big Story",
+              "query": {
+                "collections": [
+                  "the-big-story-project"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-casey",
+              "title": "Casey, Crime Photographer",
+              "query": {
+                "collections": [
+                  "casey-crime-photographer"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-radio-books",
+              "title": "Radio Performances of Books",
+              "query": {
+                "collections": [
+                  "radiobooks"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-show-gunsmoke",
+              "title": "Gunsmoke",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "titleAny": [
+                  "Gunsmoke"
+                ],
+                "mediatype": "audio"
+              }
+            }
+          ]
+        },
+        {
+          "id": "listen-radio-genres",
+          "title": "Radio Genres",
+          "children": [
+            {
+              "id": "radio-drama",
+              "title": "Drama",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "subjectAny": [
+                  "drama"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-comedy",
+              "title": "Comedy",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "subjectAny": [
+                  "comedy"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-mystery",
+              "title": "Mystery & Detective",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "subjectAny": [
+                  "mystery",
+                  "detective"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-scifi",
+              "title": "Sci-Fi",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "subjectAny": [
+                  "science fiction"
+                ],
+                "mediatype": "audio"
+              }
+            },
+            {
+              "id": "radio-western",
+              "title": "Western",
+              "query": {
+                "collections": [
+                  "oldtimeradio"
+                ],
+                "subjectAny": [
+                  "western"
+                ],
+                "mediatype": "audio"
+              }
+            }
+          ]
+        },
+        {
+          "id": "listen-78s",
+          "title": "78 RPM Records",
+          "children": [
+            {
+              "id": "78s-popular",
+              "title": "Popular",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "popular music"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-jazz",
+              "title": "Jazz",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "jazz"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-opera",
+              "title": "Opera",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "opera"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-polka",
+              "title": "Polka",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "polka"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-classical",
+              "title": "Classical",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "classical"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-folk",
+              "title": "Folk",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "folk"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-blues",
+              "title": "Blues",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "blues"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-country",
+              "title": "Country",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "country"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-hawaiian",
+              "title": "Hawaiian",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "hawaiian"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-gospel",
+              "title": "Gospel",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "gospel"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "78s-ragtime",
+              "title": "Ragtime",
+              "query": {
+                "collections": [
+                  "78rpm"
+                ],
+                "subjectAny": [
+                  "ragtime"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            }
+          ]
+        },
+        {
+          "id": "listen-lps",
+          "title": "LP Albums",
+          "children": [
+            {
+              "id": "lp-classical",
+              "title": "Classical",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "classical"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-folk-world-country",
+              "title": "Folk, World & Country",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "Folk, World, & Country"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-pop",
+              "title": "Pop",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "Pop"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-jazz",
+              "title": "Jazz",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "jazz"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-opera",
+              "title": "Opera",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "opera"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-easy-listening",
+              "title": "Easy Listening",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "easy listening"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-spoken-word",
+              "title": "Spoken Word",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "spoken word"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-rock",
+              "title": "Rock",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "rock"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-latin",
+              "title": "Latin",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "latin"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-gospel",
+              "title": "Gospel",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "gospel"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-big-band",
+              "title": "Big Band",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "big band"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            },
+            {
+              "id": "lp-stage-screen",
+              "title": "Stage & Screen",
+              "query": {
+                "collections": [
+                  "album_recordings"
+                ],
+                "subjectAny": [
+                  "Stage & Screen"
+                ],
+                "mediatype": "audio"
+              },
+              "facets": "decade",
+              "playAll": true
+            }
+          ]
+        }
+      ]
     }
   ],
   "facetGroups": {

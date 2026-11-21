@@ -16,6 +16,8 @@ data class CategoryQuery(
     val yearTo: Int? = null,
     /** When true, titleAny and subjectAny are OR'ed with each other (shows). */
     val matchTitleOrSubject: Boolean = false,
+    /** IA mediatype: "movies" (all video, including TV) or "audio". */
+    val mediatype: String = "movies",
 )
 
 /** One filter chip on a Browse screen, AND'ed onto the leaf's query. */
@@ -39,6 +41,8 @@ sealed interface CategoryNode {
         override val title: String,
         val query: CategoryQuery,
         val facetGroup: String? = null,
+        /** Browse offers Play all / Shuffle (music leaves). */
+        val playAll: Boolean = false,
     ) : CategoryNode
 }
 

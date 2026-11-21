@@ -21,6 +21,7 @@ data class NodeDto(
     val children: List<NodeDto>? = null,
     val query: QueryDto? = null,
     val facets: String? = null,
+    val playAll: Boolean = false,
 )
 
 data class QueryDto(
@@ -34,6 +35,7 @@ data class QueryDto(
     val yearFrom: Int? = null,
     val yearTo: Int? = null,
     val match: String? = null,
+    val mediatype: String? = null,
 )
 
 data class FacetGroupDto(val facets: List<FacetDto>, val minCount: Int = 1)
@@ -63,7 +65,9 @@ class CatalogLoader {
             return if (n.children != null) {
                 CategoryNode.Group(n.id, n.title, n.children.map(::node))
             } else {
-                CategoryNode.Leaf(n.id, n.title, n.query!!.toDomain(), n.facets)
+                val mediatype = n.query!!.mediatype
+                require(mediatype == null || mediatype in mediatypes) { "${n.id}: unknown mediatype $mediatype" }
+                CategoryNode.Leaf(n.id, n.title, n.query.toDomain(), n.facets, n.playAll)
             }
         }
 
@@ -82,6 +86,8 @@ class CatalogLoader {
         return catalog.copy(home = home)
     }
 
+    private val mediatypes = setOf("movies", "audio")
+
     private fun QueryDto.toDomain() = CategoryQuery(
         collections = collections,
         subjectAny = subjectAny,
@@ -93,5 +99,6 @@ class CatalogLoader {
         yearFrom = yearFrom,
         yearTo = yearTo,
         matchTitleOrSubject = match == "any",
+        mediatype = mediatype ?: "movies",
     )
 }

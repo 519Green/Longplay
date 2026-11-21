@@ -112,4 +112,20 @@ class SearchQueryBuilderTest {
     @Test fun userSearchOfOnlySyntaxIsBlank() {
         assertThat(b.userSearch(" :()\"^ ")).isEmpty()
     }
+
+    @Test fun renderUsesLeafMediatype() {
+        val q = CategoryQuery(collections = listOf("librivoxaudio"), mediatype = "audio")
+        assertThat(b.render(q)).isEqualTo("collection:(librivoxaudio) AND mediatype:audio")
+    }
+
+    @Test fun renderDefaultsToMovies() {
+        assertThat(b.render(CategoryQuery(collections = listOf("feature_films"))))
+            .isEqualTo("collection:(feature_films) AND mediatype:movies")
+    }
+
+    @Test fun facetInheritsLeafMediatype() {
+        val leaf = CategoryQuery(collections = listOf("78rpm"), mediatype = "audio")
+        assertThat(b.render(leaf, CategoryQuery(yearFrom = 1920, yearTo = 1929)))
+            .isEqualTo("collection:(78rpm) AND year:[1920 TO 1929] AND mediatype:audio")
+    }
 }
