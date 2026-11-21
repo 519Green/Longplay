@@ -1,6 +1,8 @@
 package com.archivetv
 
+import android.content.Intent
 import android.os.Bundle
+import com.archivetv.playback.EXTRA_OPEN_NOW_PLAYING
 import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -21,12 +23,31 @@ class MainActivity : ComponentActivity() {
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
+    /** The playback notification (and session activity) asks for Now Playing. */
+    private val nowPlayingRequests = MutableSharedFlow<Unit>(
+        replay = 1,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
     companion object {
         const val EXTRA_OPEN_DETAIL = "open_detail"
     }
 
+    private fun handleNowPlaying(intent: Intent?) {
+        if (intent?.getBooleanExtra(EXTRA_OPEN_NOW_PLAYING, false) == true) {
+            intent.removeExtra(EXTRA_OPEN_NOW_PLAYING)
+            nowPlayingRequests.tryEmit(Unit)
+        }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleNowPlaying(intent)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        handleNowPlaying(intent)
         setContent {
             ArchiveTvTheme {
                 Surface(
@@ -41,6 +62,7 @@ class MainActivity : ComponentActivity() {
                         // Testing / future deep links: adb shell am start -n
                         // com.archivetv/.MainActivity --es open_detail <identifier>
                         openDetail = intent?.getStringExtra(EXTRA_OPEN_DETAIL),
+                        nowPlayingRequests = nowPlayingRequests,
                     )
                 }
             }

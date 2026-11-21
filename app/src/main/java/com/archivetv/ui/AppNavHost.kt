@@ -55,6 +55,10 @@ import com.archivetv.ui.theme.SectionIcons
 import com.archivetv.ui.theme.Dimens
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.archivetv.ui.nowplaying.MiniBar
+import com.archivetv.ui.nowplaying.NowPlayingScreen
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import com.archivetv.ArchiveTvApp
@@ -69,6 +73,7 @@ object Routes {
     const val SECTION = "section/{id}"
     const val TILES = "tiles/{id}"
     const val BROWSE = "browse/{id}"
+    const val NOW_PLAYING = "nowplaying"
     fun detail(id: String) = "detail/$id"
     fun player(id: String, fileIndex: Int? = null) = "player/$id" + (fileIndex?.let { "?file=$it" } ?: "")
     fun section(id: String) = "section/$id"
@@ -86,6 +91,7 @@ private val destinations = listOf(
     Destination(Routes.section("tv"), "TV", SectionIcons.Tv),
     Destination(Routes.section("animation"), "Animation and Shorts", SectionIcons.Animation),
     Destination(Routes.section("educational"), "Educational", SectionIcons.School),
+    Destination(Routes.section("listen"), "Listen", SectionIcons.Headphones),
     Destination(Routes.MY_LIST, "My List", Icons.Filled.Favorite),
 )
 
@@ -94,14 +100,25 @@ private val destinations = listOf(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow(), openDetail: String? = null) {
+fun AppNavHost(
+    voiceSearchRequests: Flow<Unit> = emptyFlow(),
+    openDetail: String? = null,
+    nowPlayingRequests: Flow<Unit> = emptyFlow(),
+) {
     val nav = rememberNavController()
     val audio = (LocalContext.current.applicationContext as ArchiveTvApp).container.audio
     val scope = rememberCoroutineScope()
     /** Starts an audio item through the background player. */
     fun playAudio(id: String, index: Int?) {
-        scope.launch { audio.play(id, index) }
+        scope.launch { if (audio.play(id, index)) nav.navigate(Routes.NOW_PLAYING) }
     }
+    val nowPlaying by audio.state.collectAsStateWithLifecycle()
+    LaunchedEffect(Unit) {
+        nowPlayingRequests.collect { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } }
+    }
+    // The mini bar may take focus only after the screen below it has had focus,
+    // so it never steals a screen's initial focus.
+    var barFocusable by remember { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
     // Sections share one route pattern; key them by id so the drawer can tell them apart.
     val route = backStack?.destination?.route.let { pattern ->
@@ -177,6 +194,23 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow(), openDetail: String
                 .focusRequester(contentFocus)
                 .focusRestorer()
         ) {
+        Column(Modifier.fillMaxSize()) {
+        val np = nowPlaying
+        if (np != null && route != Routes.NOW_PLAYING && route != Routes.PLAYER) {
+            MiniBar(
+                np = np,
+                onOpen = { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } },
+                modifier = Modifier
+                    .padding(start = Dimens.ContentStart, end = Dimens.OverscanHorizontal, top = 8.dp)
+                    .focusProperties { canFocus = barFocusable },
+            )
+        }
+        Box(
+            Modifier
+                .weight(1f)
+                .fillMaxWidth()
+                .onFocusChanged { if (it.hasFocus) barFocusable = true }
+        ) {
         NavHost(nav, startDestination = Routes.HOME) {
             composable(Routes.HOME) {
                 HomeScreen(
@@ -240,6 +274,11 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow(), openDetail: String
                     onExit = { nav.popBackStack() },
                 )
             }
+            composable(Routes.NOW_PLAYING) {
+                NowPlayingScreen()
+            }
+        }
+        }
         }
         }
     }

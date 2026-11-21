@@ -39,6 +39,12 @@ object SectionIcons {
         "M5,13.18v4L12,21l7,-3.82v-4L12,17l-7,-3.82zM12,3L1,9l11,6l9,-4.91V17h2V9L12,3z",
     )
 
+    val Headphones = icon(
+        "Headphones",
+        "M12,1c-4.97,0 -9,4.03 -9,9v7c0,1.66 1.34,3 3,3h3v-8H5v-2c0,-3.87 3.13,-7 7,-7" +
+            "s7,3.13 7,7v2h-4v8h3c1.66,0 3,-1.34 3,-3v-7c0,-4.97 -4.03,-9 -9,-9z",
+    )
+
     private fun icon(name: String, path: String): ImageVector =
         ImageVector.Builder(
             name = name,
