@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.BrowseRow
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -13,17 +14,18 @@ import org.junit.runner.RunWith
 class HomeScreenTest {
     @get:Rule val compose = createComposeRule()
 
-    @Test fun rendersSearchAndRowTitles() {
+    @Test fun rendersRowTitlesAndFailedRow() {
         compose.setContent {
             HomeContent(
                 continueWatching = emptyList(),
                 favorites = listOf(ArchiveItem("id1", "Saved Film")),
-                rows = emptyList(),
+                rows = listOf(HomeRow(BrowseRow("Film Noir", "Film_Noir"), RowState.Failed)),
                 hero = null,
-                onItemClick = {}, onSearch = {},
+                onItemClick = {}, onRetry = {},
             )
         }
-        compose.onNodeWithText("Search").assertIsDisplayed()
         compose.onNodeWithText("My List").assertIsDisplayed()
+        compose.onNodeWithText("Film Noir").assertIsDisplayed()
+        compose.onNodeWithText("Couldn't load this row").assertIsDisplayed()
     }
 }

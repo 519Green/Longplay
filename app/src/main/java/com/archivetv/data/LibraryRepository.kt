@@ -27,7 +27,13 @@ class LibraryRepository(
     fun observeContinueWatching(): Flow<List<ArchiveItem>> =
         resumeDao.observeAll().map { list ->
             list.filter { isResumable(it.positionMs, it.durationMs) }
-                .map { ArchiveItem(it.identifier, it.identifier) }
+                .map {
+                    ArchiveItem(
+                        identifier = it.identifier,
+                        title = it.identifier,
+                        progress = resumeFraction(it.positionMs, it.durationMs),
+                    )
+                }
         }
 
     suspend fun isFavorite(id: String): Boolean = favoriteDao.isFavorite(id)

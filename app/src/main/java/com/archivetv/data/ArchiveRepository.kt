@@ -29,6 +29,17 @@ class ArchiveRepository(
         ).response.docs.map { it.toItem() }
     }
 
+    /** Looks up titles and years for known identifiers in one request. */
+    suspend fun itemsByIds(ids: List<String>): Map<String, ArchiveItem> {
+        if (ids.isEmpty()) return emptyMap()
+        val query = ids.joinToString(" OR ", prefix = "identifier:(", postfix = ")") {
+            "\"" + it.replace("\"", "") + "\""
+        }
+        return service.search(query = query, rows = ids.size, sort = "downloads desc")
+            .response.docs.map { it.toItem() }
+            .associateBy { it.identifier }
+    }
+
     suspend fun detail(identifier: String): ItemDetail {
         val dto = service.metadata(identifier)
         val meta = dto.metadata

@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
@@ -25,11 +26,13 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.Text
 import com.archivetv.ArchiveTvApp
 import com.archivetv.domain.ArchiveItem
-import com.archivetv.ui.components.ArchiveCard
+import com.archivetv.ui.components.MediaCard
+import com.archivetv.ui.theme.Dimens
 
 @Composable
 fun SearchScreen(
     onItemClick: (ArchiveItem) -> Unit,
+    voiceRequest: Int = 0,
     viewModel: SearchViewModel = searchViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -53,7 +56,21 @@ fun SearchScreen(
         }
         runCatching { voiceLauncher.launch(intent) }
     }
-    Column(Modifier.fillMaxSize().padding(24.dp)) {
+    // The remote's search/mic key bumps voiceRequest; handle each bump once,
+    // and not again when returning to this screen from Detail.
+    var handledVoiceRequest by rememberSaveable { mutableIntStateOf(0) }
+    LaunchedEffect(voiceRequest) {
+        if (voiceRequest > handledVoiceRequest) {
+            handledVoiceRequest = voiceRequest
+            startVoiceSearch()
+        }
+    }
+    Column(
+        Modifier
+            .fillMaxSize()
+            .padding(start = Dimens.ContentStart, top = Dimens.OverscanVertical),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         OutlinedTextField(
             value = state.query,
             onValueChange = viewModel::onQueryChange,
@@ -67,11 +84,14 @@ fun SearchScreen(
             Button(onClick = { startVoiceSearch() }) { Text("Voice Search") }
         }
         state.error?.let { Text(it) }
-        LazyVerticalGrid(columns = GridCells.Fixed(5),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(state.results) { item ->
-                ArchiveCard(item = item, onClick = { onItemClick(item) })
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4),
+            contentPadding = PaddingValues(end = Dimens.OverscanHorizontal, bottom = Dimens.OverscanVertical),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+            verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+        ) {
+            items(state.results, key = { it.identifier }) { item ->
+                MediaCard(item = item, onClick = { onItemClick(item) }, width = null)
             }
         }
     }

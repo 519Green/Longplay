@@ -81,6 +81,24 @@ class ArchiveRepositoryTest {
         assertThat(item.year).isEqualTo("1955")
     }
 
+    @Test fun itemsByIdsQueriesQuotedIdentifiersAndMapsById() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"response":{"numFound":2,"docs":[
+                {"identifier":"b-2","title":"Second"},{"identifier":"a.1","title":"First","year":"1950"}]}}"""
+        ))
+        val map = repo.itemsByIds(listOf("a.1", "b-2"))
+        assertThat(map["a.1"]?.title).isEqualTo("First")
+        assertThat(map["a.1"]?.year).isEqualTo("1950")
+        assertThat(map["b-2"]?.title).isEqualTo("Second")
+        val q = server.takeRequest().requestUrl!!.queryParameter("q")
+        assertThat(q).isEqualTo("identifier:(\"a.1\" OR \"b-2\")")
+    }
+
+    @Test fun itemsByIdsWithNoIdsMakesNoRequest() = runTest {
+        assertThat(repo.itemsByIds(emptyList())).isEmpty()
+        assertThat(server.requestCount).isEqualTo(0)
+    }
+
     @Test fun searchWithOnlySyntaxMakesNoRequest() = runTest {
         assertThat(repo.search(" :() ", limit = 10)).isEmpty()
         assertThat(server.requestCount).isEqualTo(0)
