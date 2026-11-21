@@ -28,7 +28,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.ExperimentalTvMaterial3Api
+import androidx.tv.material3.Button
 import androidx.tv.material3.FilterChip
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import com.archivetv.ArchiveTvApp
@@ -44,6 +47,7 @@ import java.text.NumberFormat
 fun BrowseScreen(
     leafId: String,
     onItemClick: (ArchiveItem) -> Unit,
+    onPlayAll: (items: List<ArchiveItem>, shuffle: Boolean) -> Unit = { _, _ -> },
     viewModel: BrowseViewModel? = browseViewModel(leafId),
 ) {
     if (viewModel == null) {
@@ -51,6 +55,14 @@ fun BrowseScreen(
         return
     }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    fun playAll(shuffle: Boolean) {
+        scope.launch {
+            runCatching { viewModel.itemsForPlayAll() }.getOrNull()
+                ?.takeIf { it.isNotEmpty() }
+                ?.let { onPlayAll(it, shuffle) }
+        }
+    }
     val firstItemFocus = remember { FocusRequester() }
     var initialFocusDone by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(state.items.isNotEmpty()) {
@@ -79,6 +91,10 @@ fun BrowseScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(end = Dimens.OverscanHorizontal),
         ) {
+            if (state.playAll) {
+                item(key = "play-all") { Button(onClick = { playAll(shuffle = false) }) { Text("Play all") } }
+                item(key = "shuffle") { Button(onClick = { playAll(shuffle = true) }) { Text("Shuffle") } }
+            }
             items(BrowseSort.entries, key = { "sort-${it.name}" }) { sort ->
                 FilterChip(selected = state.sort == sort, onClick = { viewModel.setSort(sort) }) {
                     Text(sort.label)

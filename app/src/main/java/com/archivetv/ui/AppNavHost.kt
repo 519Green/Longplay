@@ -240,6 +240,10 @@ fun AppNavHost(
                 BrowseScreen(
                     leafId = entry.arguments!!.getString("id")!!,
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                    onPlayAll = { items, shuffle ->
+                        audio.playAll(items, shuffle)
+                        nav.navigate(Routes.NOW_PLAYING)
+                    },
                 )
             }
             composable(Routes.SEARCH) {

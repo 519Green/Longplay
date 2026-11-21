@@ -27,6 +27,8 @@ data class BrowseUiState(
     val total: Int? = null,
     val loading: Boolean = false,
     val error: String? = null,
+    /** Music leaves offer Play all / Shuffle. */
+    val playAll: Boolean = false,
 ) {
     val endReached: Boolean get() = total != null && items.size >= total
 }
@@ -44,7 +46,7 @@ class BrowseViewModel(
     private val count: suspend (String) -> Int,
     private val pageSize: Int = 40,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(BrowseUiState(title = leaf.title))
+    private val _state = MutableStateFlow(BrowseUiState(title = leaf.title, playAll = leaf.playAll))
     val state: StateFlow<BrowseUiState> = _state.asStateFlow()
 
     private var selectedFacet: String? = null
@@ -67,6 +69,10 @@ class BrowseViewModel(
         _state.update { s -> s.copy(facets = s.facets.map { it.copy(selected = it.label == selectedFacet) }) }
         restart()
     }
+
+    /** The first [limit] results for the current sort and chip, for Play all / Shuffle. */
+    suspend fun itemsForPlayAll(limit: Int = 50): List<ArchiveItem> =
+        browse(currentQuery(), _state.value.sort, 1, limit).items
 
     fun loadMore() {
         val s = _state.value

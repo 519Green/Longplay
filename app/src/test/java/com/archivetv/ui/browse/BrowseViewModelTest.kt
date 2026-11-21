@@ -38,13 +38,20 @@ class BrowseViewModelTest {
 
     private fun items(prefix: String, n: Int) = (1..n).map { ArchiveItem("$prefix$it", "T$prefix$it") }
 
-    private fun vm(total: Int = 5, counts: Map<String, Int> = mapOf("noir+1920" to 2, "noir+1940" to 485, "noir+1950" to 508)) =
+    private var lastRows = 0
+
+    private fun vm(
+        total: Int = 5,
+        counts: Map<String, Int> = mapOf("noir+1920" to 2, "noir+1940" to 485, "noir+1950" to 508),
+        leaf: CategoryNode.Leaf = this.leaf,
+    ) =
         BrowseViewModel(
             leaf = leaf,
             facetGroup = group,
             render = ::render,
             browse = { q, sort, page, rows ->
                 calls += Call(q, sort, page)
+                lastRows = rows
                 val start = (page - 1) * rows
                 BrowsePage(items("$q-p$page-", minOf(rows, total - start).coerceAtLeast(0)), total)
             },
@@ -105,5 +112,20 @@ class BrowseViewModelTest {
         )
         assertThat(model.state.value.error).isNotNull()
         assertThat(model.state.value.facets).isEmpty()
+    }
+
+    @Test fun playAllUsesCurrentSortAndFacet() = runTest {
+        val model = vm(total = 120)
+        model.setSort(BrowseSort.OLDEST)
+        model.toggleFacet("1940s")
+        val items = model.itemsForPlayAll()
+        assertThat(calls.last()).isEqualTo(Call("noir+1940", BrowseSort.OLDEST, 1))
+        assertThat(lastRows).isEqualTo(50)
+        assertThat(items).hasSize(50)
+    }
+
+    @Test fun playAllFlagFollowsLeaf() = runTest {
+        assertThat(vm().state.value.playAll).isFalse()
+        assertThat(vm(leaf = leaf.copy(playAll = true)).state.value.playAll).isTrue()
     }
 }
