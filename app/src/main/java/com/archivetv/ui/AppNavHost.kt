@@ -54,6 +54,10 @@ import com.archivetv.ui.section.TilesScreen
 import com.archivetv.ui.theme.SectionIcons
 import com.archivetv.ui.theme.Dimens
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.rememberCoroutineScope
+import com.archivetv.ArchiveTvApp
 import kotlinx.coroutines.flow.emptyFlow
 
 object Routes {
@@ -92,6 +96,12 @@ private val destinations = listOf(
 @Composable
 fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow(), openDetail: String? = null) {
     val nav = rememberNavController()
+    val audio = (LocalContext.current.applicationContext as ArchiveTvApp).container.audio
+    val scope = rememberCoroutineScope()
+    /** Starts an audio item through the background player. */
+    fun playAudio(id: String, index: Int?) {
+        scope.launch { audio.play(id, index) }
+    }
     val backStack by nav.currentBackStackEntryAsState()
     // Sections share one route pattern; key them by id so the drawer can tell them apart.
     val route = backStack?.destination?.route.let { pattern ->
@@ -214,6 +224,7 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow(), openDetail: String
                 DetailScreen(
                     identifier = entry.arguments!!.getString("id")!!,
                     onPlay = { id, index -> nav.navigate(Routes.player(id, index)) },
+                    onPlayAudio = ::playAudio,
                 )
             }
             composable(

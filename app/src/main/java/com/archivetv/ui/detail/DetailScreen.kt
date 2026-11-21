@@ -9,7 +9,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -28,6 +31,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.Button
 import androidx.tv.material3.Icon
+import androidx.tv.material3.IconButton
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.tv.material3.ListItem
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
@@ -40,17 +46,34 @@ import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.PlayableFile
 
 /**
- * @param onPlay identifier plus a file index; null index means "where I left off".
+ * @param onPlay video: identifier plus a file index; null index means "where I left off".
+ * @param onPlayAudio the same for audio items, which play through the background player.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DetailScreen(
     identifier: String,
     onPlay: (String, Int?) -> Unit,
+    onPlayAudio: (String, Int?) -> Unit = onPlay,
     viewModel: DetailViewModel = detailViewModel(),
 ) {
     LaunchedEffect(identifier) { viewModel.load(identifier) }
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val audio = (LocalContext.current.applicationContext as ArchiveTvApp).container.audio
+    val nowPlaying by audio.state.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    var confirmation by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(confirmation) {
+        if (confirmation != null) { delay(2_000); confirmation = null }
+    }
+    fun queue(next: Boolean, fileIndex: Int?) {
+        scope.launch {
+            val ok = if (next) audio.playNext(identifier, fileIndex) else audio.addToQueue(identifier, fileIndex)
+            confirmation = if (ok) "Added to queue" else "Could not add this to the queue"
+        }
+    }
+    val play: (String, Int?) -> Unit = if (state.isAudio) onPlayAudio else onPlay
+    var menuFor by remember { mutableStateOf<Int?>(null) }
     val item = state.item
     Box(Modifier.fillMaxSize()) {
         if (item != null) {
@@ -64,7 +87,9 @@ fun DetailScreen(
                     Header(
                         item = item,
                         state = state,
-                        onPlay = { onPlay(identifier, null) },
+                        onPlay = { play(identifier, null) },
+                        onPlayNext = { queue(next = true, fileIndex = null) },
+                        onAddToQueue = { queue(next = false, fileIndex = null) },
                         onToggleFavorite = viewModel::toggleFavorite,
                         heightFraction = if (multi) 0.82f else 1f,
                     )
@@ -72,7 +97,7 @@ fun DetailScreen(
                 if (multi) {
                     item(key = "episodes-title") {
                         Text(
-                            "Episodes · ${state.files.size}",
+                            listHeader(state.kind, state.isLibriVox, state.files.size),
                             style = MaterialTheme.typography.titleMedium,
                             modifier = Modifier.padding(start = 48.dp, bottom = 8.dp),
                         )
@@ -86,13 +111,33 @@ fun DetailScreen(
                             label = label,
                             fraction = saved?.let { resumeFraction(it.positionMs, it.durationMs) },
                             watched = saved?.let { isFinished(it.positionMs, it.durationMs) } == true,
-                            onClick = { onPlay(identifier, index) },
+                            playing = nowPlaying?.current?.let { it.identifier == identifier && it.fileName == file.fileName } == true,
+                            onClick = { play(identifier, index) },
+                            onQueue = if (state.isAudio) ({ menuFor = if (menuFor == index) null else index }) else null,
                         )
+                        if (menuFor == index) {
+                            QueueMenu(
+                                onPlayNext = { menuFor = null; queue(next = true, fileIndex = index) },
+                                onAddToQueue = { menuFor = null; queue(next = false, fileIndex = index) },
+                            )
+                        }
                     }
                     item(key = "bottom") { Spacer(Modifier.height(27.dp)) }
                 }
             }
             }
+        }
+        confirmation?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 32.dp)
+                    .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
+            )
         }
         state.error?.let {
             Text(
@@ -109,6 +154,8 @@ private fun LazyItemScope.Header(
     item: ArchiveItem,
     state: DetailUiState,
     onPlay: () -> Unit,
+    onPlayNext: () -> Unit,
+    onAddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
     heightFraction: Float,
 ) {
@@ -186,6 +233,10 @@ private fun LazyItemScope.Header(
                 ) {
                     Text(playLabel(state), maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
+                if (state.isAudio && state.playable) {
+                    Button(onClick = onPlayNext) { Text("Play next", maxLines = 1, softWrap = false) }
+                    Button(onClick = onAddToQueue) { Text("Add to queue", maxLines = 1, softWrap = false) }
+                }
                 Button(onClick = onToggleFavorite, modifier = Modifier.focusRequester(listFocus)) {
                     Text(if (state.isFavorite) "Remove from My List" else "Add to My List", maxLines = 1, softWrap = false)
                 }
@@ -226,12 +277,19 @@ private fun EpisodeRow(
     label: String,
     fraction: Float?,
     watched: Boolean,
+    playing: Boolean,
     onClick: () -> Unit,
+    onQueue: (() -> Unit)?,
 ) {
+    Row(
+        modifier = Modifier.padding(horizontal = 40.dp).fillMaxWidth(0.7f),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
     ListItem(
         selected = false,
         onClick = onClick,
-        modifier = Modifier.padding(horizontal = 40.dp).fillMaxWidth(0.65f),
+        modifier = Modifier.weight(1f),
         headlineContent = {
             Text("${index + 1}. $label", maxLines = 1, overflow = TextOverflow.Ellipsis)
         },
@@ -246,9 +304,31 @@ private fun EpisodeRow(
             }
         },
         trailingContent = {
-            if (watched) Icon(Icons.Filled.Check, contentDescription = "Watched")
+            when {
+                playing -> Icon(Icons.Filled.PlayArrow, contentDescription = "Playing")
+                watched -> Icon(Icons.Filled.Check, contentDescription = "Played")
+            }
         },
     )
+    if (onQueue != null) {
+        // Reached with D-pad Right from the row.
+        IconButton(onClick = onQueue) { Icon(Icons.Filled.Add, contentDescription = "Queue options") }
+    }
+    }
+}
+
+/** Play next / Add to queue for one file, shown under its row. */
+@Composable
+private fun QueueMenu(onPlayNext: () -> Unit, onAddToQueue: () -> Unit) {
+    val first = remember { FocusRequester() }
+    LaunchedEffect(Unit) { runCatching { first.requestFocus() } }
+    Row(
+        modifier = Modifier.padding(start = 64.dp, top = 4.dp, bottom = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Button(onClick = onPlayNext, modifier = Modifier.focusRequester(first)) { Text("Play next") }
+        Button(onClick = onAddToQueue) { Text("Add to queue") }
+    }
 }
 
 /** 1530 s -> "26 min"; 5520 s -> "1 h 32 min". */

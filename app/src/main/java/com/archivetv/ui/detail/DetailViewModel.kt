@@ -9,6 +9,7 @@ import com.archivetv.data.db.ResumeEntity
 import com.archivetv.data.episodeLabels
 import com.archivetv.data.startPoint
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.ItemKind
 import com.archivetv.domain.PlayableFile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,11 +24,24 @@ data class DetailUiState(
     val progress: Map<String, ResumeEntity> = emptyMap(),
     val isFavorite: Boolean = false,
     val error: String? = null,
+    val kind: ItemKind = ItemKind.VIDEO,
+    val isLibriVox: Boolean = false,
 ) {
+    val isAudio: Boolean get() = kind != ItemKind.VIDEO
     val playable: Boolean get() = files.isNotEmpty()
     /** Episode display names with the shared show-name prefix removed. */
     val labels: List<String> by lazy { episodeLabels(files.map { it.title }) }
     val start: StartPoint get() = startPoint(files.map { it.fileName }, progress)
+}
+
+/** Heading above an item's file list: "Chapters · 12", "Episodes · 973", "Tracks · 12". */
+fun listHeader(kind: ItemKind, isLibriVox: Boolean, count: Int): String {
+    val noun = when {
+        kind == ItemKind.MUSIC -> "Tracks"
+        kind == ItemKind.SPOKEN && isLibriVox -> "Chapters"
+        else -> "Episodes"
+    }
+    return "$noun · $count"
 }
 
 class DetailViewModel(
@@ -47,6 +61,8 @@ class DetailViewModel(
                         item = d.item,
                         files = d.files,
                         isFavorite = library.isFavorite(identifier),
+                        kind = d.kind,
+                        isLibriVox = d.isLibriVox,
                     )
                     progressJob?.cancel()
                     progressJob = viewModelScope.launch {
