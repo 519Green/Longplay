@@ -5,7 +5,8 @@ import com.archivetv.data.api.SearchDocDto
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.PlayableFile
 
-data class ItemDetail(val item: ArchiveItem, val playable: PlayableFile?)
+/** An item and its playable files in play order (one for a film, many for a series). */
+data class ItemDetail(val item: ArchiveItem, val files: List<PlayableFile>)
 
 data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
 
@@ -65,7 +66,7 @@ class ArchiveRepository(
             year = meta?.year?.firstOrNull { it.isNotBlank() },
             description = description.ifBlank { null },
         )
-        return ItemDetail(item, fileSelector.select(identifier, dto.files))
+        return ItemDetail(item, fileSelector.selectAll(identifier, dto.files))
     }
 
     private fun SearchDocDto.toItem() = ArchiveItem(

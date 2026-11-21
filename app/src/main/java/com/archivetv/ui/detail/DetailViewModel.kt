@@ -4,17 +4,31 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.archivetv.data.ArchiveRepository
 import com.archivetv.data.LibraryRepository
+import com.archivetv.data.StartPoint
+import com.archivetv.data.db.ResumeEntity
+import com.archivetv.data.episodeLabels
+import com.archivetv.data.startPoint
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.PlayableFile
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class DetailUiState(
     val item: ArchiveItem? = null,
-    val playable: Boolean = false,
+    val files: List<PlayableFile> = emptyList(),
+    /** Saved position per file name; updates live when returning from the player. */
+    val progress: Map<String, ResumeEntity> = emptyMap(),
     val isFavorite: Boolean = false,
     val error: String? = null,
-)
+) {
+    val playable: Boolean get() = files.isNotEmpty()
+    /** Episode display names with the shared show-name prefix removed. */
+    val labels: List<String> by lazy { episodeLabels(files.map { it.title }) }
+    val start: StartPoint get() = startPoint(files.map { it.fileName }, progress)
+}
 
 class DetailViewModel(
     private val archive: ArchiveRepository,
@@ -23,15 +37,22 @@ class DetailViewModel(
     private val _state = MutableStateFlow(DetailUiState())
     val state: StateFlow<DetailUiState> = _state
 
+    private var progressJob: Job? = null
+
     fun load(identifier: String) {
         viewModelScope.launch {
             runCatching { archive.detail(identifier) }
                 .onSuccess { d ->
                     _state.value = DetailUiState(
                         item = d.item,
-                        playable = d.playable != null,
+                        files = d.files,
                         isFavorite = library.isFavorite(identifier),
                     )
+                    progressJob?.cancel()
+                    progressJob = viewModelScope.launch {
+                        library.observeProgress(identifier, d.files.map { it.fileName })
+                            .collect { p -> _state.update { it.copy(progress = p) } }
+                    }
                 }
                 .onFailure {
                     _state.value = DetailUiState(error = "Could not load this title.")
@@ -43,8 +64,7 @@ class DetailViewModel(
         val item = _state.value.item ?: return
         viewModelScope.launch {
             library.toggleFavorite(item)
-            _state.value = _state.value.copy(
-                isFavorite = library.isFavorite(item.identifier))
+            _state.update { it.copy(isFavorite = library.isFavorite(item.identifier)) }
         }
     }
 }

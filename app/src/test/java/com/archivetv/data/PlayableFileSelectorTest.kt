@@ -62,6 +62,91 @@ class PlayableFileSelectorTest {
         assertThat(sel.select("id1", files)?.fileName).isEqualTo("hd.mp4")
     }
 
+    // --- selectAll: one entry per distinct video ---
+
+    private fun f(
+        name: String, format: String, original: String? = null,
+        source: String = if (original != null) "derivative" else "original",
+        length: String? = null, title: String? = null, height: String? = null,
+    ) = MetadataFileDto(
+        name = name, format = format, source = source, original = original,
+        length = listOfNotNull(length), title = listOfNotNull(title), height = listOfNotNull(height),
+    )
+
+    @Test fun selectAllGroupsDerivativesByOriginalAndPicksBestOfEach() {
+        val files = listOf(
+            f("ep2.mpeg", "MPEG2"),
+            f("ep2.mp4", "h.264", original = "ep2.mpeg", length = "1500.5"),
+            f("ep2_512kb.mp4", "512Kb MPEG4", original = "ep2.mpeg"),
+            f("ep1.mpeg", "MPEG2"),
+            f("ep1.ogv", "Ogg Video", original = "ep1.mpeg"),
+            f("ep1_512kb.mp4", "512Kb MPEG4", original = "ep1.mpeg"),
+            f("thumb.jpg", "JPEG"),
+        )
+        val all = sel.selectAll("id", files)
+        assertThat(all.map { it.fileName }).containsExactly("ep1_512kb.mp4", "ep2.mp4").inOrder()
+        assertThat(all[1].durationSec).isWithin(0.01).of(1500.5)
+    }
+
+    @Test fun selectAllKeepsPlayableOriginalWhenItIsBest() {
+        val files = listOf(
+            f("show.mp4", "MPEG4"),
+            f("show_512kb.mp4", "512Kb MPEG4", original = "show.mp4"),
+        )
+        assertThat(sel.selectAll("id", files).map { it.fileName }).containsExactly("show.mp4")
+    }
+
+    @Test fun selectAllSortsNaturally() {
+        val names = listOf("Ep 10.mp4", "Ep 2.mp4", "Ep 1.mp4", "s01e10.mp4", "s01e02.mp4",
+            "Season 2/Show - 001.mp4", "Season 1/Show - 002.mp4", "Season 1/Show - 010.mp4")
+        val all = sel.selectAll("id", names.map { f(it, "h.264") })
+        assertThat(all.map { it.fileName }).containsExactly(
+            "Ep 1.mp4", "Ep 2.mp4", "Ep 10.mp4",
+            "s01e02.mp4", "s01e10.mp4",
+            "Season 1/Show - 002.mp4", "Season 1/Show - 010.mp4", "Season 2/Show - 001.mp4",
+        ).inOrder()
+    }
+
+    @Test fun displayTitlePrefersFileTitleElseCleanedName() {
+        val all = sel.selectAll("id", listOf(
+            f("G:/Videos/Thundarr/Thundarr_the_Barbarian - S01E01 - Secret.mp4", "MPEG4"),
+            f("chapter_02.mp4", "h.264", title = "Chapter Two: The Return"),
+        ))
+        assertThat(all.map { it.title }).containsExactly(
+            "Thundarr the Barbarian - S01E01 - Secret", "Chapter Two: The Return",
+        )
+    }
+
+    @Test fun durationParsesSecondsAndClockFormats() {
+        assertThat(parseDurationSec("1500.53")).isWithin(0.01).of(1500.53)
+        assertThat(parseDurationSec("25:30")).isWithin(0.01).of(1530.0)
+        assertThat(parseDurationSec("1:02:03")).isWithin(0.01).of(3723.0)
+        assertThat(parseDurationSec("abc")).isNull()
+        assertThat(parseDurationSec(null)).isNull()
+    }
+
+    @Test fun selectReturnsFirstOfSelectAll() {
+        val files = listOf(f("b.mp4", "h.264"), f("a.mp4", "h.264"))
+        assertThat(sel.select("id", files)?.fileName).isEqualTo("a.mp4")
+    }
+
+    @Test fun episodeLabelsDropSharedPrefixAtASeparator() {
+        assertThat(episodeLabels(listOf(
+            "Thundarr the Barbarian - S01E01 - Secret", "Thundarr the Barbarian - S01E02 - Harvest",
+        ))).containsExactly("S01E01 - Secret", "S01E02 - Harvest").inOrder()
+        assertThat(episodeLabels(listOf("Green Acres - 001 - Oliver", "Green Acres - 002 - Lisa")))
+            .containsExactly("001 - Oliver", "002 - Lisa").inOrder()
+    }
+
+    @Test fun episodeLabelsKeepTitlesWithoutUsefulPrefix() {
+        assertThat(episodeLabels(listOf("Billy the Kid", "Ben Thompson")))
+            .containsExactly("Billy the Kid", "Ben Thompson").inOrder()
+        assertThat(episodeLabels(listOf("Only one"))).containsExactly("Only one")
+        // Never strip a title down to nothing.
+        assertThat(episodeLabels(listOf("Show - ", "Show - ")))
+            .containsExactly("Show - ", "Show - ").inOrder()
+    }
+
     @Test fun returnsNullWhenNoPlayableFile() {
         val files = listOf(MetadataFileDto(name = "scan.pdf", format = "PDF"))
         assertThat(sel.select("id1", files)).isNull()

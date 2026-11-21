@@ -8,13 +8,22 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
@@ -32,10 +41,29 @@ import com.archivetv.ui.theme.Dimens
 @Composable
 fun SearchScreen(
     onItemClick: (ArchiveItem) -> Unit,
-    voiceRequest: Int = 0,
+    voicePending: Boolean = false,
+    onVoiceStarted: () -> Unit = {},
     viewModel: SearchViewModel = searchViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
+    val voiceFocus = remember { FocusRequester() }
+    val firstResultFocus = remember { FocusRequester() }
+    // Bumped on each submit; when results for it arrive, focus jumps to them.
+    var submits by remember { mutableIntStateOf(0) }
+    var focusedSubmit by remember { mutableIntStateOf(0) }
+    fun submit() {
+        keyboard?.hide()
+        submits++
+        viewModel.submit()
+    }
+    LaunchedEffect(state.results, submits) {
+        if (submits > focusedSubmit && state.results.isNotEmpty()) {
+            focusedSubmit = submits
+            runCatching { firstResultFocus.requestFocus() }
+        }
+    }
     val voiceLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -43,7 +71,7 @@ fun SearchScreen(
             result.data
                 ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
                 ?.firstOrNull()
-                ?.let { viewModel.search(it) }
+                ?.let { submits++; viewModel.search(it) }
         }
     }
     fun startVoiceSearch() {
@@ -56,12 +84,13 @@ fun SearchScreen(
         }
         runCatching { voiceLauncher.launch(intent) }
     }
-    // The remote's search/mic key bumps voiceRequest; handle each bump once,
-    // and not again when returning to this screen from Detail.
-    var handledVoiceRequest by rememberSaveable { mutableIntStateOf(0) }
-    LaunchedEffect(voiceRequest) {
-        if (voiceRequest > handledVoiceRequest) {
-            handledVoiceRequest = voiceRequest
+    // The remote's search/mic key sets voicePending; consume it exactly once.
+    LaunchedEffect(voicePending) {
+        if (voicePending) {
+            onVoiceStarted()
+            // Move focus off the drawer first so it collapses; otherwise the
+            // system voice panel draws over an expanded drawer.
+            runCatching { voiceFocus.requestFocus() }
             startVoiceSearch()
         }
     }
@@ -77,11 +106,23 @@ fun SearchScreen(
             label = { androidx.compose.material3.Text("Search films & TV") },
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { viewModel.submit() }),
+            keyboardActions = KeyboardActions(onSearch = { submit() }),
+            // A focused text field keeps D-pad keys for its cursor, which traps
+            // remote users in it. Up/Down always leave the field.
+            modifier = Modifier.onPreviewKeyEvent { e ->
+                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (e.key) {
+                    Key.DirectionDown -> focusManager.moveFocus(FocusDirection.Down)
+                    Key.DirectionUp -> focusManager.moveFocus(FocusDirection.Up)
+                    else -> false
+                }
+            },
         )
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Button(onClick = viewModel::submit) { Text("Search") }
-            Button(onClick = { startVoiceSearch() }) { Text("Voice Search") }
+            Button(onClick = { submit() }) { Text("Search") }
+            Button(onClick = { startVoiceSearch() }, modifier = Modifier.focusRequester(voiceFocus)) {
+                Text("Voice Search")
+            }
         }
         state.error?.let { Text(it) }
         LazyVerticalGrid(
@@ -90,8 +131,13 @@ fun SearchScreen(
             horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
             verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
         ) {
-            items(state.results, key = { it.identifier }) { item ->
-                MediaCard(item = item, onClick = { onItemClick(item) }, width = null)
+            itemsIndexed(state.results, key = { _, it -> it.identifier }) { index, item ->
+                MediaCard(
+                    item = item,
+                    onClick = { onItemClick(item) },
+                    width = null,
+                    cardModifier = if (index == 0) Modifier.focusRequester(firstResultFocus) else Modifier,
+                )
             }
         }
     }

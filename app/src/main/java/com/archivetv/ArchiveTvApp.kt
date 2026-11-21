@@ -12,6 +12,7 @@ import com.archivetv.data.config.CatalogLoader
 import com.archivetv.domain.Catalog
 import com.archivetv.domain.CategoryNode
 import com.archivetv.data.db.AppDatabase
+import com.archivetv.data.db.MIGRATION_1_2
 import com.archivetv.domain.BrowseRow
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -37,7 +38,7 @@ class AppContainer(app: Application) {
 
     private val db = Room.databaseBuilder(
         app, AppDatabase::class.java, "archivetv.db"
-    ).build()
+    ).addMigrations(MIGRATION_1_2).build()
 
     val queryBuilder = SearchQueryBuilder()
 

@@ -1,5 +1,6 @@
 package com.archivetv.ui.home
 
+import com.archivetv.data.NextUp
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.BrowseRow
 import com.archivetv.ui.common.RowState
@@ -31,7 +32,8 @@ class HomeViewModelTest {
         loadRow: suspend (BrowseRow) -> List<ArchiveItem>,
         continueWatching: kotlinx.coroutines.flow.Flow<List<ArchiveItem>> = flowOf(emptyList()),
         lookup: suspend (List<String>) -> Map<String, ArchiveItem> = { emptyMap() },
-    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()))
+        nextUp: kotlinx.coroutines.flow.Flow<List<NextUp>> = flowOf(emptyList()),
+    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()), nextUp)
 
     @Test fun rowsStartLoadingAndPublishIndependently() = runTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
@@ -91,6 +93,21 @@ class HomeViewModelTest {
         assertThat(first.title).isEqualTo("Real x")
         assertThat(first.year).isEqualTo("1950")
         assertThat(first.progress).isEqualTo(0.4f)
+    }
+
+    @Test fun nextUpCardsCarryTitleAndEpisodeToPlay() = runTest {
+        var lookups = 0
+        val model = vm(
+            loadRow = { emptyList() },
+            continueWatching = flowOf(listOf(ArchiveItem("film", "film", progress = 0.3f))),
+            nextUp = flowOf(listOf(NextUp("show", nextIndex = 3, fileCount = 21))),
+            lookup = { ids -> lookups++; ids.associateWith { ArchiveItem(it, "Real $it") } },
+        )
+        val card = model.state.value.nextUp.single()
+        assertThat(card.item.title).isEqualTo("Real show")
+        assertThat(card.fileIndex).isEqualTo(3)
+        assertThat(card.label).isEqualTo("Next: episode 4 of 21")
+        assertThat(lookups).isEqualTo(2)
     }
 
     @Test fun continueWatchingFallsBackToIdWhenLookupFails() = runTest {

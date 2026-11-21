@@ -1,12 +1,19 @@
 package com.archivetv.data.db
 
 import androidx.room.Entity
-import androidx.room.PrimaryKey
 
-@Entity(tableName = "resume")
+/**
+ * Playback position for one file of an item. [fileName] is "" for rows
+ * migrated from schema v1, which stored one position per item (its first file).
+ * [fileIndex]/[fileCount] let Next Up be computed without a network call.
+ */
+@Entity(tableName = "resume", primaryKeys = ["identifier", "fileName"])
 data class ResumeEntity(
-    @PrimaryKey val identifier: String,
+    val identifier: String,
+    val fileName: String,
     val positionMs: Long,
     val durationMs: Long,
     val updatedAt: Long,
+    val fileIndex: Int = 0,
+    val fileCount: Int = 1,
 )

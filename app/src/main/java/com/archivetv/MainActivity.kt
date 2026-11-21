@@ -21,6 +21,10 @@ class MainActivity : ComponentActivity() {
         onBufferOverflow = BufferOverflow.DROP_OLDEST,
     )
 
+    companion object {
+        const val EXTRA_OPEN_DETAIL = "open_detail"
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
@@ -31,7 +35,14 @@ class MainActivity : ComponentActivity() {
                     colors = SurfaceDefaults.colors(
                         containerColor = MaterialTheme.colorScheme.background,
                     ),
-                ) { AppNavHost(voiceSearchRequests = voiceSearchRequests) }
+                ) {
+                    AppNavHost(
+                        voiceSearchRequests = voiceSearchRequests,
+                        // Testing / future deep links: adb shell am start -n
+                        // com.archivetv/.MainActivity --es open_detail <identifier>
+                        openDetail = intent?.getStringExtra(EXTRA_OPEN_DETAIL),
+                    )
+                }
             }
         }
     }

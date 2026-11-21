@@ -43,6 +43,7 @@ fun MediaCard(
     modifier: Modifier = Modifier,
     cardModifier: Modifier = Modifier,
     width: Dp? = Dimens.CardWidth,
+    subtitle: String? = item.year,
 ) {
     StandardCardContainer(
         modifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth(),
@@ -75,7 +76,7 @@ fun MediaCard(
             )
         },
         subtitle = {
-            item.year?.let {
+            subtitle?.let {
                 Text(
                     text = it,
                     style = MaterialTheme.typography.bodySmall,

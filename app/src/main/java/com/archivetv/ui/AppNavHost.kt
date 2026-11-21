@@ -18,7 +18,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -62,12 +61,12 @@ object Routes {
     const val SEARCH = "search"
     const val MY_LIST = "mylist"
     const val DETAIL = "detail/{id}"
-    const val PLAYER = "player/{id}"
+    const val PLAYER = "player/{id}?file={file}"
     const val SECTION = "section/{id}"
     const val TILES = "tiles/{id}"
     const val BROWSE = "browse/{id}"
     fun detail(id: String) = "detail/$id"
-    fun player(id: String) = "player/$id"
+    fun player(id: String, fileIndex: Int? = null) = "player/$id" + (fileIndex?.let { "?file=$it" } ?: "")
     fun section(id: String) = "section/$id"
     fun tiles(id: String) = "tiles/$id"
     fun browse(id: String) = "browse/$id"
@@ -91,7 +90,7 @@ private val destinations = listOf(
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
+fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow(), openDetail: String? = null) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
     // Sections share one route pattern; key them by id so the drawer can tell them apart.
@@ -100,13 +99,18 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
     }
     val topLevel = destinations.any { it.route == route }
 
-    var voiceRequest by remember { mutableIntStateOf(0) }
+    // One-shot: set by the mic key, cleared by Search once it starts listening.
+    var voicePending by remember { mutableStateOf(false) }
     val currentRoute by rememberUpdatedState(route)
     LaunchedEffect(Unit) {
         voiceSearchRequests.collect {
-            voiceRequest++
+            voicePending = true
             if (currentRoute != Routes.SEARCH) nav.navigateTopLevel(Routes.SEARCH)
         }
+    }
+
+    LaunchedEffect(openDetail) {
+        if (!openDetail.isNullOrBlank()) nav.navigate(Routes.detail(openDetail))
     }
 
     val itemFocus = remember { destinations.associate { it.route to FocusRequester() } }
@@ -167,6 +171,7 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
             composable(Routes.HOME) {
                 HomeScreen(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                    onPlayFile = { id, index -> nav.navigate(Routes.player(id, index)) },
                     onOpenGroup = { nav.navigate(Routes.tiles(it)) },
                     onOpenLeaf = { nav.navigate(Routes.browse(it)) },
                 )
@@ -195,7 +200,8 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
             composable(Routes.SEARCH) {
                 SearchScreen(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
-                    voiceRequest = voiceRequest,
+                    voicePending = voicePending,
+                    onVoiceStarted = { voicePending = false },
                 )
             }
             composable(Routes.MY_LIST) {
@@ -207,15 +213,19 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
             ) { entry ->
                 DetailScreen(
                     identifier = entry.arguments!!.getString("id")!!,
-                    onPlay = { nav.navigate(Routes.player(it)) },
+                    onPlay = { id, index -> nav.navigate(Routes.player(id, index)) },
                 )
             }
             composable(
                 Routes.PLAYER,
-                arguments = listOf(navArgument("id") { type = NavType.StringType }),
+                arguments = listOf(
+                    navArgument("id") { type = NavType.StringType },
+                    navArgument("file") { type = NavType.IntType; defaultValue = -1 },
+                ),
             ) { entry ->
                 PlayerScreen(
                     identifier = entry.arguments!!.getString("id")!!,
+                    startIndex = entry.arguments!!.getInt("file").takeIf { it >= 0 },
                     onExit = { nav.popBackStack() },
                 )
             }

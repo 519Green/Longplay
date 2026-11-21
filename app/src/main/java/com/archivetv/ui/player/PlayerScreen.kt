@@ -11,47 +11,84 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import com.archivetv.ArchiveTvApp
+import com.archivetv.data.isResumable
+import com.archivetv.data.startPoint
+import com.archivetv.domain.PlayableFile
 import com.archivetv.playback.PlayerController
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
+/**
+ * Plays every file of [identifier] as one playlist. [startIndex] picks the
+ * file (from an episode row or Next Up); null means "where I left off".
+ * Positions are saved per file every 10 s, on file completion, and on exit.
+ */
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayerScreen(identifier: String, onExit: () -> Unit) {
+fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit) {
     val context = LocalContext.current
     val app = context.applicationContext as ArchiveTvApp
+    val library = app.container.libraryRepository
     val controller = remember { PlayerController(context) }
+    val scope = rememberCoroutineScope()
+    var files by remember { mutableStateOf<List<PlayableFile>>(emptyList()) }
+    // Last known real duration per file index, reported by the player.
+    val durations = remember { mutableMapOf<Int, Long>() }
+
+    fun save(index: Int, positionMs: Long, durationMs: Long) {
+        val f = files.getOrNull(index) ?: return
+        scope.launch { library.saveResume(identifier, f.fileName, index, files.size, positionMs, durationMs) }
+    }
+
+    fun saveCurrent(blocking: Boolean = false) {
+        val f = files.getOrNull(controller.currentIndex()) ?: return
+        val index = controller.currentIndex()
+        val write = suspend {
+            library.saveResume(
+                identifier, f.fileName, index, files.size, controller.positionMs(), controller.durationMs(),
+            )
+        }
+        if (blocking) runCatching { runBlocking { write() } } else scope.launch { write() }
+    }
 
     DisposableEffect(Unit) {
-        onDispose { controller.release() }
+        controller.onFileCompleted = { index ->
+            val known = durations[index]?.takeIf { it > 0 }
+                ?: files.getOrNull(index)?.durationSec?.let { (it * 1000).toLong() }
+                ?: 1L
+            save(index, known, known)
+        }
+        controller.onPlaylistEnded = { onExit() }
+        onDispose {
+            saveCurrent(blocking = true)
+            controller.release()
+        }
     }
 
     LaunchedEffect(identifier) {
-        val detail = runCatching { app.container.archiveRepository.detail(identifier) }
-            .getOrNull()
-        val url = detail?.playable?.url
-        if (url == null) { onExit(); return@LaunchedEffect }
-        val resume = app.container.libraryRepository.resumePosition(identifier)
-        controller.start(url, resume)
+        val detail = runCatching { app.container.archiveRepository.detail(identifier) }.getOrNull()
+        val list = detail?.files.orEmpty()
+        if (list.isEmpty()) { onExit(); return@LaunchedEffect }
+        files = list
+        val names = list.map { it.fileName }
+        val progress = library.progress(identifier, names)
+        val (index, positionMs) = if (startIndex != null && startIndex in list.indices) {
+            val saved = progress[names[startIndex]]
+            startIndex to (saved?.takeIf { isResumable(it.positionMs, it.durationMs) }?.positionMs ?: 0L)
+        } else {
+            startPoint(names, progress).let { it.index to it.positionMs }
+        }
+        controller.start(list, index, positionMs)
         while (isActive) {
             delay(10_000)
-            app.container.libraryRepository.saveResume(
-                identifier, controller.positionMs(), controller.durationMs())
+            durations[controller.currentIndex()] = controller.durationMs()
+            saveCurrent()
         }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            // Persist final position synchronously-ish on exit.
-            runCatching {
-                kotlinx.coroutines.runBlocking {
-                    app.container.libraryRepository.saveResume(
-                        identifier, controller.positionMs(), controller.durationMs())
-                }
-            }
-        }
-    }
-
+    val multiFile = files.size > 1
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = { ctx ->
@@ -63,14 +100,16 @@ fun PlayerScreen(identifier: String, onExit: () -> Unit) {
                 controllerShowTimeoutMs = 5_000
                 setShowFastForwardButton(true)
                 setShowRewindButton(true)
-                setShowNextButton(false)
-                setShowPreviousButton(false)
                 resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                 setBackgroundColor(Color.BLACK)
                 setShutterBackgroundColor(Color.BLACK)
                 keepScreenOn = true
                 requestFocus()
             }
+        },
+        update = { view ->
+            view.setShowNextButton(multiFile)
+            view.setShowPreviousButton(multiFile)
         },
     )
 }

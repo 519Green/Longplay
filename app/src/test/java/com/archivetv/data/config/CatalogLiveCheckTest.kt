@@ -41,4 +41,23 @@ class CatalogLiveCheckTest {
         }
         assertWithMessage("leaves with no results").that(empty).isEmpty()
     }
+
+    /** Episode lists for known multi-file items: counts and first few names in play order. */
+    @Test fun multiFileItemsListEpisodesInOrder() = runBlocking {
+        assumeTrue(System.getenv("ARCHIVETV_LIVE_CHECK") != null)
+        val service = Retrofit.Builder()
+            .baseUrl("https://archive.org/")
+            .addConverterFactory(MoshiConverterFactory.create(archiveMoshi()))
+            .build()
+            .create(InternetArchiveService::class.java)
+        val selector = com.archivetv.data.PlayableFileSelector()
+        val ids = listOf(
+            "Thundarr_the_Barbarian", "TheStranger_0", "his_girl_friday",
+            "GreenAcresCompleteSeries",
+        )
+        for (id in ids) {
+            val files = selector.selectAll(id, service.metadata(id).files)
+            println("EPISODES %-28s %4d  %s".format(id, files.size, listOf(0, 1, 2, files.size / 2, files.size - 1).filter { it in files.indices }.distinct().map { files[it] }.joinToString(" | ") { it.title.take(38) }))
+        }
+    }
 }

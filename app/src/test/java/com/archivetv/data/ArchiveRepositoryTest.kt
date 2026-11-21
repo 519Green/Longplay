@@ -69,7 +69,7 @@ class ArchiveRepositoryTest {
         val detail = repo.detail("id1")
         assertThat(detail.item.title).isEqualTo("Film One")
         assertThat(detail.item.description).isEqualTo("desc")
-        assertThat(detail.playable?.fileName).isEqualTo("film.mp4")
+        assertThat(detail.files.single().fileName).isEqualTo("film.mp4")
     }
 
     @Test fun detailHandlesArrayFieldsAndHtmlDescription() = runTest {

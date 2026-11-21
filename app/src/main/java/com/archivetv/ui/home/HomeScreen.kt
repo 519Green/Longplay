@@ -3,6 +3,10 @@ package com.archivetv.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -39,6 +43,9 @@ import com.archivetv.ArchiveTvApp
 import com.archivetv.data.BrowseSort
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.ui.common.CardRow
+import com.archivetv.ui.common.RowHeader
+import com.archivetv.ui.common.rowPadding
+import com.archivetv.ui.components.MediaCard
 import com.archivetv.ui.common.ContentRow
 import com.archivetv.ui.common.TileRow
 import com.archivetv.ui.common.contentRows
@@ -58,6 +65,7 @@ private val homeTiles = listOf(
 @Composable
 fun HomeScreen(
     onItemClick: (ArchiveItem) -> Unit,
+    onPlayFile: (String, Int) -> Unit,
     onOpenGroup: (String) -> Unit,
     onOpenLeaf: (String) -> Unit,
     viewModel: HomeViewModel = homeViewModel(),
@@ -73,6 +81,8 @@ fun HomeScreen(
         favorites = state.favorites,
         rows = state.rows,
         hero = state.hero,
+        nextUp = state.nextUp,
+        onPlayFile = onPlayFile,
         browseTiles = tiles,
         onItemClick = onItemClick,
         onRetry = viewModel::retry,
@@ -90,6 +100,8 @@ fun HomeContent(
     onRetry: (Int) -> Unit,
     browseTiles: List<Pair<String, () -> Unit>> = emptyList(),
     onSeeAll: ((ContentRow) -> Unit)? = null,
+    nextUp: List<NextUpCard> = emptyList(),
+    onPlayFile: (String, Int) -> Unit = { _, _ -> },
 ) {
     val heroFocus = remember { FocusRequester() }
     // Focus content (not the drawer) once on first arrival; after that, focus
@@ -120,6 +132,9 @@ fun HomeContent(
         if (continueWatching.isNotEmpty()) {
             item(key = "continue") { CardRow("Continue Watching", continueWatching, onItemClick) }
         }
+        if (nextUp.isNotEmpty()) {
+            item(key = "next-up") { NextUpRow(nextUp, onPlayFile) }
+        }
         if (favorites.isNotEmpty()) {
             item(key = "favorites") { CardRow("My List", favorites, onItemClick) }
         }
@@ -127,6 +142,26 @@ fun HomeContent(
             item(key = "browse") { TileRow("Browse", browseTiles) }
         }
         contentRows(rows, onItemClick, onRetry, onSeeAll)
+    }
+}
+
+@Composable
+private fun NextUpRow(cards: List<NextUpCard>, onPlayFile: (String, Int) -> Unit) {
+    Column {
+        RowHeader("Next Up")
+        LazyRow(
+            modifier = Modifier.focusRestorer(),
+            contentPadding = rowPadding(),
+            horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+        ) {
+            items(cards, key = { it.item.identifier }) { card ->
+                MediaCard(
+                    item = card.item,
+                    subtitle = card.label,
+                    onClick = { onPlayFile(card.item.identifier, card.fileIndex) },
+                )
+            }
+        }
     }
 }
 
@@ -180,6 +215,7 @@ fun homeViewModel(): HomeViewModel {
                 lookupItems = archive::itemsByIds,
                 continueWatching = library.observeContinueWatching(),
                 favorites = library.observeFavorites(),
+                nextUp = library.observeNextUp(),
             ) as T
         }
     })
