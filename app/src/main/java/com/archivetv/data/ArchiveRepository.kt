@@ -7,17 +7,29 @@ import com.archivetv.domain.PlayableFile
 
 data class ItemDetail(val item: ArchiveItem, val playable: PlayableFile?)
 
+data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
+
+enum class BrowseSort(val label: String, val param: String) {
+    POPULAR("Popular", "downloads desc"),
+    TRENDING("Trending", "week desc"),
+    RECENT("Recently added", "addeddate desc"),
+    OLDEST("Oldest first", "year asc"),
+}
+
 class ArchiveRepository(
     private val service: InternetArchiveService,
     private val fileSelector: PlayableFileSelector,
     private val queryBuilder: SearchQueryBuilder,
 ) {
-    suspend fun browseCollection(collectionId: String, limit: Int): List<ArchiveItem> =
-        service.search(
-            query = queryBuilder.collection(collectionId),
-            rows = limit,
-            sort = "downloads desc",
-        ).response.docs.map { it.toItem() }
+    /** One page of a rendered catalog query (pages start at 1). */
+    suspend fun browse(query: String, sort: BrowseSort, page: Int, rows: Int): BrowsePage {
+        val body = service.search(query = query, rows = rows, sort = sort.param, page = page).response
+        return BrowsePage(body.docs.map { it.toItem() }, body.numFound)
+    }
+
+    /** Result count only (rows=0), for facet chips. */
+    suspend fun count(query: String): Int =
+        service.search(query = query, rows = 0, sort = BrowseSort.POPULAR.param).response.numFound
 
     suspend fun search(text: String, limit: Int): List<ArchiveItem> {
         val query = queryBuilder.userSearch(text)

@@ -8,7 +8,9 @@ import com.archivetv.data.PlayableFileSelector
 import com.archivetv.data.SearchQueryBuilder
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.archiveMoshi
-import com.archivetv.data.config.BrowseConfigLoader
+import com.archivetv.data.config.CatalogLoader
+import com.archivetv.domain.Catalog
+import com.archivetv.domain.CategoryNode
 import com.archivetv.data.db.AppDatabase
 import com.archivetv.domain.BrowseRow
 import retrofit2.Retrofit
@@ -37,13 +39,17 @@ class AppContainer(app: Application) {
         app, AppDatabase::class.java, "archivetv.db"
     ).build()
 
-    val archiveRepository = ArchiveRepository(
-        service, PlayableFileSelector(), SearchQueryBuilder()
-    )
+    val queryBuilder = SearchQueryBuilder()
+
+    val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder)
     val libraryRepository = LibraryRepository(db.favoriteDao(), db.resumeDao())
 
-    val browseRows: List<BrowseRow> =
+    val catalog: Catalog =
         app.assets.open("browse_config.json").bufferedReader().use {
-            BrowseConfigLoader().parse(it.readText())
+            CatalogLoader().parse(it.readText())
         }
+
+    fun rowFor(leaf: CategoryNode.Leaf) = BrowseRow(leaf.id, leaf.title, queryBuilder.render(leaf.query))
+
+    val homeRows: List<BrowseRow> = catalog.home.map(::rowFor)
 }

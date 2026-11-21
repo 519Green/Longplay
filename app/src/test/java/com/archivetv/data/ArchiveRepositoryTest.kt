@@ -29,15 +29,28 @@ class ArchiveRepositoryTest {
 
     @After fun tearDown() = server.shutdown()
 
-    @Test fun browseCollectionMapsDocsToItems() = runTest {
+    @Test fun browseReturnsPageAndTotalAndSendsSortAndPage() = runTest {
         server.enqueue(MockResponse().setBody(
-            """{"response":{"numFound":1,"docs":[{"identifier":"id1","title":"Film One","year":"1950"}]}}"""
+            """{"response":{"numFound":57,"docs":[{"identifier":"id1","title":"Film One","year":"1950"}]}}"""
         ))
-        val items = repo.browseCollection("feature_films", limit = 10)
+        val page = repo.browse("collection:(x)", BrowseSort.TRENDING, page = 3, rows = 10)
+        assertThat(page.total).isEqualTo(57)
+        val url = server.takeRequest().requestUrl!!
+        assertThat(url.queryParameter("q")).isEqualTo("collection:(x)")
+        assertThat(url.queryParameter("sort[]")).isEqualTo("week desc")
+        assertThat(url.queryParameter("page")).isEqualTo("3")
+        assertThat(url.queryParameter("rows")).isEqualTo("10")
+        val items = page.items
         assertThat(items).hasSize(1)
         assertThat(items[0].identifier).isEqualTo("id1")
         assertThat(items[0].title).isEqualTo("Film One")
         assertThat(items[0].year).isEqualTo("1950")
+    }
+
+    @Test fun countAsksForZeroRows() = runTest {
+        server.enqueue(MockResponse().setBody("""{"response":{"numFound":485,"docs":[]}}"""))
+        assertThat(repo.count("q")).isEqualTo(485)
+        assertThat(server.takeRequest().requestUrl!!.queryParameter("rows")).isEqualTo("0")
     }
 
     @Test fun searchMapsDocsToItems() = runTest {

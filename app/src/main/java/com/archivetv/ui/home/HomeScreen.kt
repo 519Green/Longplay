@@ -3,30 +3,23 @@ package com.archivetv.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.focusRestorer
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -43,24 +36,47 @@ import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.archivetv.ArchiveTvApp
+import com.archivetv.data.BrowseSort
 import com.archivetv.domain.ArchiveItem
-import com.archivetv.ui.components.MediaCard
-import com.archivetv.ui.components.PlaceholderCard
+import com.archivetv.ui.common.CardRow
+import com.archivetv.ui.common.ContentRow
+import com.archivetv.ui.common.TileRow
+import com.archivetv.ui.common.contentRows
 import com.archivetv.ui.theme.Dimens
+
+/** Category groups surfaced as tiles on Home (Jellyfin-style "My Media" row). */
+private val homeTiles = listOf(
+    "movie-genres" to "Movie Genres",
+    "movie-decades" to "Movies by Decade",
+    "tv-decades" to "TV by Decade",
+    "tv-genres" to "TV Genres",
+    "tv-shows" to "TV Shows",
+    "animation-studios" to "Animation Studios",
+    "edu-studios" to "Educational Studios",
+)
 
 @Composable
 fun HomeScreen(
     onItemClick: (ArchiveItem) -> Unit,
+    onOpenGroup: (String) -> Unit,
+    onOpenLeaf: (String) -> Unit,
     viewModel: HomeViewModel = homeViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val app = LocalContext.current.applicationContext as ArchiveTvApp
+    val tiles = remember {
+        homeTiles.filter { app.container.catalog.group(it.first) != null }
+            .map { (id, label) -> label to { onOpenGroup(id) } }
+    }
     HomeContent(
         continueWatching = state.continueWatching,
         favorites = state.favorites,
         rows = state.rows,
         hero = state.hero,
+        browseTiles = tiles,
         onItemClick = onItemClick,
         onRetry = viewModel::retry,
+        onSeeAll = { onOpenLeaf(it.config.id) },
     )
 }
 
@@ -68,10 +84,12 @@ fun HomeScreen(
 fun HomeContent(
     continueWatching: List<ArchiveItem>,
     favorites: List<ArchiveItem>,
-    rows: List<HomeRow>,
+    rows: List<ContentRow>,
     hero: ArchiveItem?,
     onItemClick: (ArchiveItem) -> Unit,
     onRetry: (Int) -> Unit,
+    browseTiles: List<Pair<String, () -> Unit>> = emptyList(),
+    onSeeAll: ((ContentRow) -> Unit)? = null,
 ) {
     val heroFocus = remember { FocusRequester() }
     // Focus content (not the drawer) once on first arrival; after that, focus
@@ -105,14 +123,10 @@ fun HomeContent(
         if (favorites.isNotEmpty()) {
             item(key = "favorites") { CardRow("My List", favorites, onItemClick) }
         }
-        itemsIndexed(rows, key = { _, row -> row.config.collectionId }) { index, row ->
-            when (val st = row.state) {
-                RowState.Loading -> PlaceholderRow(row.config.title)
-                RowState.Failed -> FailedRow(row.config.title, onRetry = { onRetry(index) })
-                is RowState.Loaded ->
-                    if (st.items.isNotEmpty()) CardRow(row.config.title, st.items, onItemClick)
-            }
+        if (browseTiles.isNotEmpty()) {
+            item(key = "browse") { TileRow("Browse", browseTiles) }
         }
+        contentRows(rows, onItemClick, onRetry, onSeeAll)
     }
 }
 
@@ -153,82 +167,6 @@ private fun Hero(item: ArchiveItem, onClick: () -> Unit, modifier: Modifier = Mo
 }
 
 @Composable
-private fun RowHeader(title: String) {
-    Text(
-        title,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onSurface,
-        modifier = Modifier.padding(start = Dimens.ContentStart, top = 12.dp),
-    )
-}
-
-private val rowPadding = PaddingValues(
-    start = Dimens.ContentStart,
-    end = Dimens.OverscanHorizontal,
-    top = Dimens.RowFocusRoom,
-    bottom = Dimens.RowFocusRoom,
-)
-
-@Composable
-private fun CardRow(title: String, items: List<ArchiveItem>, onClick: (ArchiveItem) -> Unit) {
-    Column {
-        RowHeader(title)
-        LazyRow(
-            modifier = Modifier.focusRestorer(),
-            contentPadding = rowPadding,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-        ) {
-            items(items, key = { it.identifier }) { item ->
-                MediaCard(item = item, onClick = { onClick(item) })
-            }
-        }
-    }
-}
-
-@Composable
-private fun PlaceholderRow(title: String) {
-    Column {
-        RowHeader(title)
-        LazyRow(
-            contentPadding = rowPadding,
-            horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
-            userScrollEnabled = false,
-        ) {
-            items(5) { PlaceholderCard() }
-        }
-    }
-}
-
-@Composable
-private fun FailedRow(title: String, onRetry: () -> Unit) {
-    Column {
-        RowHeader(title)
-        LazyRow(contentPadding = rowPadding) {
-            item {
-                Card(
-                    onClick = onRetry,
-                    modifier = Modifier.width(Dimens.CardWidth).aspectRatio(Dimens.CardImageAspect),
-                    colors = CardDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                ) {
-                    Column(
-                        Modifier.fillMaxSize().padding(12.dp),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text("Couldn't load this row", style = MaterialTheme.typography.labelLarge)
-                        Text(
-                            "Select to retry",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
 fun homeViewModel(): HomeViewModel {
     val app = LocalContext.current.applicationContext as ArchiveTvApp
     return viewModel(factory = object : ViewModelProvider.Factory {
@@ -237,8 +175,8 @@ fun homeViewModel(): HomeViewModel {
             val archive = app.container.archiveRepository
             val library = app.container.libraryRepository
             return HomeViewModel(
-                configuredRows = app.container.browseRows,
-                loadRow = { archive.browseCollection(it.collectionId, limit = 20) },
+                configuredRows = app.container.homeRows,
+                loadRow = { archive.browse(it.query, BrowseSort.POPULAR, page = 1, rows = 20).items },
                 lookupItems = archive::itemsByIds,
                 continueWatching = library.observeContinueWatching(),
                 favorites = library.observeFavorites(),

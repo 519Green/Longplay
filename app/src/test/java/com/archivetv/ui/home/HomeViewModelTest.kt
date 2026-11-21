@@ -2,6 +2,7 @@ package com.archivetv.ui.home
 
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.BrowseRow
+import com.archivetv.ui.common.RowState
 import com.google.common.truth.Truth.assertThat
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -18,8 +19,8 @@ import org.junit.Test
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
-    private val rowA = BrowseRow("Row A", "a")
-    private val rowB = BrowseRow("Row B", "b")
+    private val rowA = BrowseRow("a", "Row A", "q-a")
+    private val rowB = BrowseRow("b", "Row B", "q-b")
     private fun item(id: String) = ArchiveItem(id, "Title $id")
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -35,7 +36,7 @@ class HomeViewModelTest {
     @Test fun rowsStartLoadingAndPublishIndependently() = runTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
         val gateB = CompletableDeferred<List<ArchiveItem>>()
-        val model = vm(loadRow = { if (it.collectionId == "a") gateA.await() else gateB.await() })
+        val model = vm(loadRow = { if (it.id == "a") gateA.await() else gateB.await() })
 
         assertThat(model.state.value.rows.map { it.state }).containsExactly(RowState.Loading, RowState.Loading)
 
@@ -58,7 +59,7 @@ class HomeViewModelTest {
 
     @Test fun heroComesFromFirstRowInConfigOrder() = runTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
-        val model = vm(loadRow = { if (it.collectionId == "a") gateA.await() else listOf(item("b1")) })
+        val model = vm(loadRow = { if (it.id == "a") gateA.await() else listOf(item("b1")) })
         // Row B loaded first, but row A is still loading: hero waits for A.
         assertThat(model.state.value.hero).isNull()
         gateA.complete(listOf(item("a1")))
@@ -67,9 +68,9 @@ class HomeViewModelTest {
 
     @Test fun heroSkipsFailedAndEmptyRows() = runTest {
         val model = vm(
-            rows = listOf(rowA, rowB, BrowseRow("Row C", "c")),
+            rows = listOf(rowA, rowB, BrowseRow("c", "Row C", "q-c")),
             loadRow = {
-                when (it.collectionId) {
+                when (it.id) {
                     "a" -> error("boom")
                     "b" -> emptyList()
                     else -> listOf(item("c1"))

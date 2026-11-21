@@ -1,5 +1,6 @@
 package com.archivetv.data
 
+import com.archivetv.domain.CategoryQuery
 import com.google.common.truth.Truth.assertThat
 import org.junit.Test
 
@@ -35,6 +36,77 @@ class SearchQueryBuilderTest {
 
     @Test fun userSearchDropsBareBooleanOperators() {
         assertThat(b.userSearch("cats AND dogs OR NOT mice")).contains("title:(cats dogs mice)")
+    }
+
+    @Test fun renderCollectionsOnly() {
+        assertThat(b.render(CategoryQuery(collections = listOf("Film_Noir"))))
+            .isEqualTo("collection:(Film_Noir) AND mediatype:movies")
+    }
+
+    @Test fun renderAllClausesInFixedOrder() {
+        val q = CategoryQuery(
+            collections = listOf("prelinger", "educationalfilms"),
+            subjectAny = listOf("labor", "industry"),
+            creatorAny = listOf("coronet", "national film board"),
+            sponsorAny = listOf("chevrolet"),
+            yearFrom = 1940, yearTo = 1949,
+            subjectNone = listOf("home movies"),
+            excludeCollections = listOf("feature_films_unsorted"),
+        )
+        assertThat(b.render(q)).isEqualTo(
+            "collection:(prelinger OR educationalfilms)" +
+                " AND (subject:\"labor\" OR subject:\"industry\")" +
+                " AND (creator:\"coronet\" OR creator:\"national film board\")" +
+                " AND (sponsor:\"chevrolet\")" +
+                " AND year:[1940 TO 1949]" +
+                " AND NOT subject:\"home movies\"" +
+                " AND NOT collection:(feature_films_unsorted)" +
+                " AND mediatype:movies"
+        )
+    }
+
+    @Test fun renderTitleOrSubjectForShows() {
+        val q = CategoryQuery(
+            collections = listOf("classic_tv"),
+            titleAny = listOf("Dragnet"),
+            subjectAny = listOf("dragnet"),
+            matchTitleOrSubject = true,
+        )
+        assertThat(b.render(q)).isEqualTo(
+            "collection:(classic_tv) AND (title:\"Dragnet\" OR subject:\"dragnet\") AND mediatype:movies"
+        )
+    }
+
+    @Test fun renderTitlesAndSubjectsSeparatelyByDefault() {
+        val q = CategoryQuery(titleAny = listOf("a"), subjectAny = listOf("b"))
+        assertThat(b.render(q))
+            .isEqualTo("(subject:\"b\") AND (title:\"a\") AND mediatype:movies")
+    }
+
+    @Test fun renderOpenEndedYears() {
+        assertThat(b.render(CategoryQuery(collections = listOf("c"), yearTo = 1929)))
+            .isEqualTo("collection:(c) AND year:[* TO 1929] AND mediatype:movies")
+        assertThat(b.render(CategoryQuery(collections = listOf("c"), yearFrom = 1980)))
+            .isEqualTo("collection:(c) AND year:[1980 TO *] AND mediatype:movies")
+    }
+
+    @Test fun renderAppendsFacet() {
+        val leaf = CategoryQuery(collections = listOf("Film_Noir"))
+        val facet = CategoryQuery(yearFrom = 1940, yearTo = 1949)
+        assertThat(b.render(leaf, facet))
+            .isEqualTo("collection:(Film_Noir) AND year:[1940 TO 1949] AND mediatype:movies")
+    }
+
+    @Test fun renderEscapesPhrases() {
+        val q = CategoryQuery(subjectAny = listOf("""say "hi" \ now"""))
+        assertThat(b.render(q))
+            .isEqualTo("""(subject:"say \"hi\" \\ now") AND mediatype:movies""")
+    }
+
+    @Test fun renderDropsUnsafeCollectionIds() {
+        // Collection ids are identifiers; anything outside [A-Za-z0-9_.-] is removed.
+        assertThat(b.render(CategoryQuery(collections = listOf("ok_1", "bad) OR (x"))))
+            .isEqualTo("collection:(ok_1 OR badORx) AND mediatype:movies")
     }
 
     @Test fun userSearchOfOnlySyntaxIsBlank() {

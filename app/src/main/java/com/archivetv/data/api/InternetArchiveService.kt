@@ -10,6 +10,7 @@ interface InternetArchiveService {
         @Query("q") query: String,
         @Query("rows") rows: Int,
         @Query("sort[]") sort: String,
+        @Query("page") page: Int = 1,
     ): SearchResponseDto
 
     @GET("metadata/{identifier}")

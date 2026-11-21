@@ -6,6 +6,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.BrowseRow
+import com.archivetv.ui.common.ContentRow
+import com.archivetv.ui.common.RowState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -19,7 +21,7 @@ class HomeScreenTest {
             HomeContent(
                 continueWatching = emptyList(),
                 favorites = listOf(ArchiveItem("id1", "Saved Film")),
-                rows = listOf(HomeRow(BrowseRow("Film Noir", "Film_Noir"), RowState.Failed)),
+                rows = listOf(ContentRow(BrowseRow("film-noir", "Film Noir", "q"), RowState.Failed)),
                 hero = null,
                 onItemClick = {}, onRetry = {},
             )

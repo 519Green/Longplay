@@ -48,7 +48,11 @@ import com.archivetv.ui.detail.DetailScreen
 import com.archivetv.ui.home.HomeScreen
 import com.archivetv.ui.mylist.MyListScreen
 import com.archivetv.ui.player.PlayerScreen
+import com.archivetv.ui.browse.BrowseScreen
 import com.archivetv.ui.search.SearchScreen
+import com.archivetv.ui.section.SectionScreen
+import com.archivetv.ui.section.TilesScreen
+import com.archivetv.ui.theme.SectionIcons
 import com.archivetv.ui.theme.Dimens
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
@@ -59,16 +63,26 @@ object Routes {
     const val MY_LIST = "mylist"
     const val DETAIL = "detail/{id}"
     const val PLAYER = "player/{id}"
+    const val SECTION = "section/{id}"
+    const val TILES = "tiles/{id}"
+    const val BROWSE = "browse/{id}"
     fun detail(id: String) = "detail/$id"
     fun player(id: String) = "player/$id"
+    fun section(id: String) = "section/$id"
+    fun tiles(id: String) = "tiles/$id"
+    fun browse(id: String) = "browse/$id"
 }
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
 
-// Movies, TV, Animation and Educational join this list in Phase 2 with their screens.
+// Section ids match the top-level groups in browse_config.json.
 private val destinations = listOf(
     Destination(Routes.SEARCH, "Search", Icons.Filled.Search),
     Destination(Routes.HOME, "Home", Icons.Filled.Home),
+    Destination(Routes.section("movies"), "Movies", SectionIcons.Movie),
+    Destination(Routes.section("tv"), "TV", SectionIcons.Tv),
+    Destination(Routes.section("animation"), "Animation and Shorts", SectionIcons.Animation),
+    Destination(Routes.section("educational"), "Educational", SectionIcons.School),
     Destination(Routes.MY_LIST, "My List", Icons.Filled.Favorite),
 )
 
@@ -80,7 +94,10 @@ private val destinations = listOf(
 fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
     val nav = rememberNavController()
     val backStack by nav.currentBackStackEntryAsState()
-    val route = backStack?.destination?.route
+    // Sections share one route pattern; key them by id so the drawer can tell them apart.
+    val route = backStack?.destination?.route.let { pattern ->
+        if (pattern == Routes.SECTION) Routes.section(backStack?.arguments?.getString("id").orEmpty()) else pattern
+    }
     val topLevel = destinations.any { it.route == route }
 
     var voiceRequest by remember { mutableIntStateOf(0) }
@@ -148,7 +165,32 @@ fun AppNavHost(voiceSearchRequests: Flow<Unit> = emptyFlow()) {
         ) {
         NavHost(nav, startDestination = Routes.HOME) {
             composable(Routes.HOME) {
-                HomeScreen(onItemClick = { nav.navigate(Routes.detail(it.identifier)) })
+                HomeScreen(
+                    onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                    onOpenGroup = { nav.navigate(Routes.tiles(it)) },
+                    onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                )
+            }
+            composable(Routes.SECTION, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+                SectionScreen(
+                    sectionId = entry.arguments!!.getString("id")!!,
+                    onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                    onOpenGroup = { nav.navigate(Routes.tiles(it)) },
+                    onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                )
+            }
+            composable(Routes.TILES, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+                TilesScreen(
+                    groupId = entry.arguments!!.getString("id")!!,
+                    onOpenGroup = { nav.navigate(Routes.tiles(it)) },
+                    onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                )
+            }
+            composable(Routes.BROWSE, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+                BrowseScreen(
+                    leafId = entry.arguments!!.getString("id")!!,
+                    onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                )
             }
             composable(Routes.SEARCH) {
                 SearchScreen(

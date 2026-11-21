@@ -1,5 +1,7 @@
 package com.archivetv.data
 
+import com.archivetv.domain.CategoryQuery
+
 class SearchQueryBuilder {
     // IA has no "tv" mediatype; television items are mediatype:movies.
     private val video = "mediatype:movies"
@@ -30,6 +32,41 @@ class SearchQueryBuilder {
             "OR (${anyOf(community)} AND title:($terms))) AND $video"
     }
 
+    /**
+     * Renders a catalog leaf (and an optional facet) to Lucene text. Clause
+     * order is fixed so the output is stable and testable.
+     */
+    fun render(query: CategoryQuery, facet: CategoryQuery? = null): String =
+        (clauses(query) + facet?.let(::clauses).orEmpty() + video).joinToString(" AND ")
+
+    private fun clauses(q: CategoryQuery): List<String> = buildList {
+        if (q.collections.isNotEmpty()) add(anyOf(q.collections))
+        if (q.matchTitleOrSubject && q.titleAny.isNotEmpty() && q.subjectAny.isNotEmpty()) {
+            add(phrases("title", q.titleAny, close = false) + " OR " + phrases("subject", q.subjectAny, open = false))
+        } else {
+            if (q.subjectAny.isNotEmpty()) add(phrases("subject", q.subjectAny))
+            if (q.titleAny.isNotEmpty()) add(phrases("title", q.titleAny))
+        }
+        if (q.creatorAny.isNotEmpty()) add(phrases("creator", q.creatorAny))
+        if (q.sponsorAny.isNotEmpty()) add(phrases("sponsor", q.sponsorAny))
+        if (q.yearFrom != null || q.yearTo != null) {
+            add("year:[${q.yearFrom ?: "*"} TO ${q.yearTo ?: "*"}]")
+        }
+        q.subjectNone.forEach { add("NOT subject:${quote(it)}") }
+        if (q.excludeCollections.isNotEmpty()) add("NOT " + anyOf(q.excludeCollections))
+    }
+
+    /** `(field:"a" OR field:"b")`; open/close let two groups share one pair of parentheses. */
+    private fun phrases(field: String, values: List<String>, open: Boolean = true, close: Boolean = true) =
+        (if (open) "(" else "") +
+            values.joinToString(" OR ") { "$field:${quote(it)}" } +
+            (if (close) ")" else "")
+
+    private fun quote(phrase: String) =
+        "\"" + phrase.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
+
+    private val unsafeId = Regex("[^A-Za-z0-9_.-]")
+
     private fun anyOf(collections: List<String>) =
-        "collection:(${collections.joinToString(" OR ")})"
+        "collection:(${collections.joinToString(" OR ") { it.replace(unsafeId, "") }})"
 }

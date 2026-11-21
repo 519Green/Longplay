@@ -1,10 +1,1835 @@
 {
-  "rows": [
-    { "title": "Classic Cinema", "collectionId": "feature_films" },
-    { "title": "Film Noir", "collectionId": "Film_Noir" },
-    { "title": "Sci-Fi & Horror", "collectionId": "SciFi_Horror" },
-    { "title": "Classic TV", "collectionId": "classic_tv" },
-    { "title": "Vintage Animation", "collectionId": "vintage_cartoons" },
-    { "title": "Serials", "collectionId": "cliffhangers" }
-  ]
+  "version": 2,
+  "home": [
+    "movies-popular",
+    "film-noir",
+    "tv-1950s",
+    "scifi-horror",
+    "vintage-animation",
+    "serials",
+    "studio-coronet"
+  ],
+  "sections": [
+    {
+      "id": "movies",
+      "title": "Movies",
+      "children": [
+        {
+          "id": "movies-popular",
+          "title": "Popular Movies",
+          "query": {
+            "collections": [
+              "feature_films"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "film-noir",
+          "title": "Film Noir",
+          "query": {
+            "collections": [
+              "Film_Noir"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "scifi-horror",
+          "title": "Sci-Fi & Horror",
+          "query": {
+            "collections": [
+              "SciFi_Horror"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "comedy",
+          "title": "Comedy",
+          "query": {
+            "collections": [
+              "Comedy_Films"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "silent",
+          "title": "Silent Films",
+          "query": {
+            "collections": [
+              "silent_films"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "serials",
+          "title": "Serials",
+          "query": {
+            "collections": [
+              "cliffhangers"
+            ]
+          }
+        },
+        {
+          "id": "movie-genres",
+          "title": "By Genre",
+          "children": [
+            {
+              "id": "genre-westerns",
+              "title": "Westerns",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "western",
+                  "westerns"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-mystery",
+              "title": "Mystery",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "mystery",
+                  "detective"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-crime",
+              "title": "Crime",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "crime",
+                  "gangster"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-horror",
+              "title": "Horror",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "horror"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-musicals",
+              "title": "Musicals",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "musical",
+                  "musicals"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-romance",
+              "title": "Romance",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "romance"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-adventure",
+              "title": "Adventure",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "adventure",
+                  "action"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-drama",
+              "title": "Drama",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "drama"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-war",
+              "title": "War",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "war",
+                  "wwii",
+                  "world war ii"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "genre-thrillers",
+              "title": "Thrillers",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "subjectAny": [
+                  "thriller",
+                  "suspense"
+                ]
+              },
+              "facets": "decade"
+            }
+          ]
+        },
+        {
+          "id": "movie-decades",
+          "title": "By Decade",
+          "children": [
+            {
+              "id": "movies-before-1910",
+              "title": "Before 1910",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearTo": 1909
+              }
+            },
+            {
+              "id": "movies-1910s",
+              "title": "1910s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1910,
+                "yearTo": 1919
+              }
+            },
+            {
+              "id": "movies-1920s",
+              "title": "1920s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1920,
+                "yearTo": 1929
+              }
+            },
+            {
+              "id": "movies-1930s",
+              "title": "1930s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1930,
+                "yearTo": 1939
+              }
+            },
+            {
+              "id": "movies-1940s",
+              "title": "1940s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1940,
+                "yearTo": 1949
+              }
+            },
+            {
+              "id": "movies-1950s",
+              "title": "1950s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1950,
+                "yearTo": 1959
+              }
+            },
+            {
+              "id": "movies-1960s",
+              "title": "1960s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1960,
+                "yearTo": 1969
+              }
+            },
+            {
+              "id": "movies-1970s",
+              "title": "1970s",
+              "query": {
+                "collections": [
+                  "feature_films"
+                ],
+                "yearFrom": 1970,
+                "yearTo": 1979
+              }
+            }
+          ]
+        },
+        {
+          "id": "movie-collections",
+          "title": "Collections",
+          "children": [
+            {
+              "id": "silent-hall-of-fame",
+              "title": "Silent Hall of Fame",
+              "query": {
+                "collections": [
+                  "silenthalloffame"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "colorized",
+              "title": "Colorized",
+              "query": {
+                "collections": [
+                  "colorized-movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "scifi-films",
+              "title": "Science Fiction Films",
+              "query": {
+                "collections": [
+                  "film_scifi"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "video-cellar",
+              "title": "The Video Cellar",
+              "query": {
+                "collections": [
+                  "TheVideoCellarCollection"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "picfixer",
+              "title": "Picfixer Restorations",
+              "query": {
+                "collections": [
+                  "feature_films_picfixer"
+                ]
+              },
+              "facets": "decade"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tv",
+      "title": "TV",
+      "children": [
+        {
+          "id": "tv-popular",
+          "title": "Popular TV",
+          "query": {
+            "collections": [
+              "classic_tv"
+            ]
+          },
+          "facets": "tvGenre"
+        },
+        {
+          "id": "tv-decades",
+          "title": "By Decade",
+          "children": [
+            {
+              "id": "tv-1940s",
+              "title": "1940s",
+              "query": {
+                "collections": [
+                  "classic_tv_1940s"
+                ]
+              },
+              "facets": "tvGenre"
+            },
+            {
+              "id": "tv-1950s",
+              "title": "1950s",
+              "query": {
+                "collections": [
+                  "classic_tv_1950s"
+                ]
+              },
+              "facets": "tvGenre"
+            },
+            {
+              "id": "tv-1960s",
+              "title": "1960s",
+              "query": {
+                "collections": [
+                  "classic_tv_1960s"
+                ]
+              },
+              "facets": "tvGenre"
+            },
+            {
+              "id": "tv-1970s",
+              "title": "1970s",
+              "query": {
+                "collections": [
+                  "classic_tv_1970s"
+                ]
+              },
+              "facets": "tvGenre"
+            },
+            {
+              "id": "tv-1980s",
+              "title": "1980s",
+              "query": {
+                "collections": [
+                  "classic_tv_1980s"
+                ]
+              },
+              "facets": "tvGenre"
+            },
+            {
+              "id": "tv-1990s",
+              "title": "1990s",
+              "query": {
+                "collections": [
+                  "classic_tv_1990s"
+                ]
+              },
+              "facets": "tvGenre"
+            }
+          ]
+        },
+        {
+          "id": "tv-genres",
+          "title": "By Genre",
+          "children": [
+            {
+              "id": "tv-genre-comedy",
+              "title": "Sitcoms & Comedy",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "sitcom",
+                  "comedy"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-westerns",
+              "title": "Westerns",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "western",
+                  "westerns"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-drama",
+              "title": "Drama",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "drama"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-crime",
+              "title": "Crime & Mystery",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "crime",
+                  "mystery",
+                  "detective",
+                  "police"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-scifi",
+              "title": "Sci-Fi & Fantasy",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "science fiction",
+                  "sci-fi",
+                  "fantasy"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-anthology",
+              "title": "Anthology",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "anthology"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-variety",
+              "title": "Variety",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "variety",
+                  "variety show"
+                ]
+              },
+              "facets": "tvDecade"
+            },
+            {
+              "id": "tv-genre-game-shows",
+              "title": "Game Shows",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "subjectAny": [
+                  "game show"
+                ]
+              },
+              "facets": "tvDecade"
+            }
+          ]
+        },
+        {
+          "id": "tv-shows",
+          "title": "Shows",
+          "children": [
+            {
+              "id": "show-dragnet",
+              "title": "Dragnet",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Dragnet"
+                ],
+                "subjectAny": [
+                  "dragnet"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-bonanza",
+              "title": "Bonanza",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Bonanza"
+                ],
+                "subjectAny": [
+                  "bonanza"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-lone-ranger",
+              "title": "The Lone Ranger",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Lone Ranger"
+                ],
+                "subjectAny": [
+                  "lone ranger"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-ozzie-harriet",
+              "title": "Ozzie and Harriet",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Ozzie and Harriet",
+                  "Ozzie & Harriet"
+                ],
+                "subjectAny": [
+                  "ozzie and harriet",
+                  "ozzie & harriet"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-one-step-beyond",
+              "title": "One Step Beyond",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "One Step Beyond"
+                ],
+                "subjectAny": [
+                  "one step beyond"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-jack-benny",
+              "title": "The Jack Benny Program",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Jack Benny"
+                ]
+              }
+            },
+            {
+              "id": "show-tales-of-tomorrow",
+              "title": "Tales of Tomorrow",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Tales of Tomorrow"
+                ],
+                "subjectAny": [
+                  "tales of tomorrow"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-robin-hood",
+              "title": "The Adventures of Robin Hood",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Adventures of Robin Hood"
+                ],
+                "subjectAny": [
+                  "robin hood"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-sherlock-holmes",
+              "title": "Sherlock Holmes",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Sherlock Holmes"
+                ],
+                "subjectAny": [
+                  "sherlock holmes"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-you-bet-your-life",
+              "title": "You Bet Your Life",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "You Bet Your Life"
+                ],
+                "subjectAny": [
+                  "you bet your life"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-lucy-show",
+              "title": "The Lucy Show",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Lucy Show"
+                ],
+                "subjectAny": [
+                  "lucy show"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-burns-allen",
+              "title": "Burns and Allen",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Burns and Allen",
+                  "Burns & Allen"
+                ],
+                "subjectAny": [
+                  "burns and allen"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-beverly-hillbillies",
+              "title": "The Beverly Hillbillies",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Beverly Hillbillies"
+                ],
+                "subjectAny": [
+                  "beverly hillbillies"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-andy-griffith",
+              "title": "The Andy Griffith Show",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Andy Griffith"
+                ],
+                "subjectAny": [
+                  "andy griffith"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-dick-van-dyke",
+              "title": "The Dick Van Dyke Show",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Dick Van Dyke"
+                ],
+                "subjectAny": [
+                  "dick van dyke"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-petticoat-junction",
+              "title": "Petticoat Junction",
+              "query": {
+                "collections": [
+                  "classic_tv",
+                  "opensource_movies",
+                  "opensource"
+                ],
+                "titleAny": [
+                  "Petticoat Junction"
+                ]
+              }
+            },
+            {
+              "id": "show-green-acres",
+              "title": "Green Acres",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Green Acres"
+                ],
+                "subjectAny": [
+                  "green acres"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-superman",
+              "title": "Adventures of Superman",
+              "query": {
+                "collections": [
+                  "classic_tv",
+                  "opensource_movies",
+                  "opensource"
+                ],
+                "titleAny": [
+                  "Adventures of Superman"
+                ]
+              }
+            },
+            {
+              "id": "show-cisco-kid",
+              "title": "The Cisco Kid",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Cisco Kid"
+                ],
+                "subjectAny": [
+                  "cisco kid"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-annie-oakley",
+              "title": "Annie Oakley",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Annie Oakley"
+                ],
+                "subjectAny": [
+                  "annie oakley"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-space-patrol",
+              "title": "Space Patrol",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Space Patrol"
+                ],
+                "subjectAny": [
+                  "space patrol"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-flash-gordon",
+              "title": "Flash Gordon",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Flash Gordon"
+                ]
+              }
+            },
+            {
+              "id": "show-twilight-zone",
+              "title": "The Twilight Zone",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Twilight Zone"
+                ]
+              }
+            },
+            {
+              "id": "show-alfred-hitchcock",
+              "title": "Alfred Hitchcock Presents",
+              "query": {
+                "collections": [
+                  "classic_tv"
+                ],
+                "titleAny": [
+                  "Alfred Hitchcock Presents"
+                ],
+                "subjectAny": [
+                  "alfred hitchcock presents"
+                ],
+                "match": "any"
+              }
+            },
+            {
+              "id": "show-thundarr",
+              "title": "Thundarr the Barbarian",
+              "query": {
+                "collections": [
+                  "classic_tv",
+                  "opensource_movies",
+                  "opensource"
+                ],
+                "titleAny": [
+                  "Thundarr the Barbarian"
+                ]
+              }
+            },
+            {
+              "id": "show-he-man",
+              "title": "He-Man and the Masters of the Universe",
+              "query": {
+                "collections": [
+                  "classic_tv",
+                  "opensource_movies",
+                  "opensource"
+                ],
+                "titleAny": [
+                  "He-Man and the Masters of the Universe"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "id": "tv-movies",
+          "title": "TV Movies",
+          "query": {
+            "collections": [
+              "televisionmovies"
+            ]
+          }
+        },
+        {
+          "id": "commercials",
+          "title": "Commercials",
+          "query": {
+            "collections": [
+              "classic_tv_commercials"
+            ]
+          },
+          "facets": "decade"
+        }
+      ]
+    },
+    {
+      "id": "animation",
+      "title": "Animation and Shorts",
+      "children": [
+        {
+          "id": "vintage-animation",
+          "title": "Vintage Animation",
+          "query": {
+            "collections": [
+              "vintage_cartoons"
+            ]
+          },
+          "facets": "animDecade"
+        },
+        {
+          "id": "animation-shorts",
+          "title": "Animation Shorts",
+          "query": {
+            "collections": [
+              "more_animation"
+            ]
+          },
+          "facets": "animDecade"
+        },
+        {
+          "id": "film-chest",
+          "title": "Film Chest Collection",
+          "query": {
+            "collections": [
+              "classic_cartoons"
+            ]
+          },
+          "facets": "animDecade"
+        },
+        {
+          "id": "animation-studios",
+          "title": "By Studio",
+          "children": [
+            {
+              "id": "anim-studio-fleischer",
+              "title": "Fleischer Studios",
+              "query": {
+                "collections": [
+                  "vintage_cartoons",
+                  "more_animation",
+                  "classic_cartoons",
+                  "animationandcartoons"
+                ],
+                "creatorAny": [
+                  "fleischer"
+                ]
+              },
+              "facets": "animDecade"
+            },
+            {
+              "id": "anim-studio-famous",
+              "title": "Famous Studios",
+              "query": {
+                "collections": [
+                  "vintage_cartoons",
+                  "more_animation",
+                  "classic_cartoons",
+                  "animationandcartoons"
+                ],
+                "creatorAny": [
+                  "famous studios"
+                ]
+              },
+              "facets": "animDecade"
+            },
+            {
+              "id": "anim-studio-van-beuren",
+              "title": "Van Beuren",
+              "query": {
+                "collections": [
+                  "vintage_cartoons",
+                  "more_animation",
+                  "classic_cartoons",
+                  "animationandcartoons"
+                ],
+                "creatorAny": [
+                  "van beuren"
+                ]
+              },
+              "facets": "animDecade"
+            },
+            {
+              "id": "anim-studio-iwerks",
+              "title": "Ub Iwerks",
+              "query": {
+                "collections": [
+                  "vintage_cartoons",
+                  "more_animation",
+                  "classic_cartoons",
+                  "animationandcartoons"
+                ],
+                "creatorAny": [
+                  "iwerks"
+                ]
+              },
+              "facets": "animDecade"
+            },
+            {
+              "id": "anim-studio-warner",
+              "title": "Warner Bros.",
+              "query": {
+                "collections": [
+                  "vintage_cartoons",
+                  "more_animation",
+                  "classic_cartoons",
+                  "animationandcartoons"
+                ],
+                "creatorAny": [
+                  "warner",
+                  "leon schlesinger",
+                  "schlesinger"
+                ]
+              },
+              "facets": "animDecade"
+            }
+          ]
+        },
+        {
+          "id": "short-films",
+          "title": "Short Films",
+          "query": {
+            "collections": [
+              "short_films"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "newsreels",
+          "title": "Newsreels",
+          "query": {
+            "collections": [
+              "universal_newsreels"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "educational",
+      "title": "Educational",
+      "children": [
+        {
+          "id": "edu-popular",
+          "title": "Popular Educational",
+          "query": {
+            "collections": [
+              "prelinger",
+              "educationalfilms",
+              "avgeeks"
+            ],
+            "subjectNone": [
+              "home movies"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "ephemeral",
+          "title": "Ephemeral Films (Prelinger)",
+          "query": {
+            "collections": [
+              "prelinger"
+            ],
+            "subjectNone": [
+              "home movies"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "educational-films",
+          "title": "Educational Films",
+          "query": {
+            "collections": [
+              "educationalfilms"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "av-geeks",
+          "title": "A/V Geeks",
+          "query": {
+            "collections": [
+              "avgeeks"
+            ]
+          },
+          "facets": "decade"
+        },
+        {
+          "id": "edu-studios",
+          "title": "By Studio",
+          "children": [
+            {
+              "id": "studio-coronet",
+              "title": "Coronet",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "coronet"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-britannica",
+              "title": "Encyclopaedia Britannica",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "britannica"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-jam-handy",
+              "title": "Jam Handy",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "jam handy",
+                  "handy (jam)"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-nfb",
+              "title": "National Film Board of Canada",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "national film board"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-centron",
+              "title": "Centron",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "centron"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-castle",
+              "title": "Castle Films",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "castle films"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-sid-davis",
+              "title": "Sid Davis",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "sid davis",
+                  "davis (sid)"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-calvin",
+              "title": "Calvin Company",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "calvin company"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-wilding",
+              "title": "Wilding Picture Productions",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "wilding"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-mode-art",
+              "title": "Mode-Art Pictures",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "mode-art"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-bray",
+              "title": "Bray Studios",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "bray studios"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "studio-bbc",
+              "title": "BBC",
+              "query": {
+                "collections": [
+                  "prelinger",
+                  "educationalfilms",
+                  "avgeeks"
+                ],
+                "creatorAny": [
+                  "british broadcasting corporation"
+                ]
+              },
+              "facets": "decade"
+            }
+          ]
+        },
+        {
+          "id": "edu-sponsors",
+          "title": "Sponsored Films",
+          "children": [
+            {
+              "id": "sponsor-gm",
+              "title": "Chevrolet & General Motors",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "sponsorAny": [
+                  "chevrolet",
+                  "general motors"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "sponsor-att",
+              "title": "AT&T & Bell System",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "sponsorAny": [
+                  "american telephone and telegraph",
+                  "bell system"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "sponsor-ford",
+              "title": "Ford",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "sponsorAny": [
+                  "ford motor"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "sponsor-ge",
+              "title": "General Electric",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "sponsorAny": [
+                  "general electric"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "sponsor-usda",
+              "title": "U.S. Department of Agriculture",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "sponsorAny": [
+                  "department of agriculture"
+                ]
+              },
+              "facets": "decade"
+            }
+          ]
+        },
+        {
+          "id": "edu-topics",
+          "title": "By Topic",
+          "children": [
+            {
+              "id": "topic-work",
+              "title": "Work & Industry",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "labor",
+                  "industry"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-transport",
+              "title": "Transportation",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "transportation",
+                  "road trips",
+                  "automobiles"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-family",
+              "title": "Family & Children",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "families",
+                  "children",
+                  "youth"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-leisure",
+              "title": "Leisure & Travel",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "leisure and recreation",
+                  "tourism",
+                  "vacations"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-nature",
+              "title": "Farming & Nature",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "agriculture",
+                  "nature",
+                  "animals"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-cities",
+              "title": "Cities",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "cities"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-sports",
+              "title": "Sports",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "sports"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            },
+            {
+              "id": "topic-celebrations",
+              "title": "Celebrations & Holidays",
+              "query": {
+                "collections": [
+                  "prelinger"
+                ],
+                "subjectAny": [
+                  "celebrations and ceremonies",
+                  "holidays"
+                ],
+                "subjectNone": [
+                  "home movies"
+                ]
+              },
+              "facets": "decade"
+            }
+          ]
+        },
+        {
+          "id": "home-movies",
+          "title": "Home Movies",
+          "query": {
+            "collections": [
+              "prelinger"
+            ],
+            "subjectAny": [
+              "home movies"
+            ]
+          },
+          "facets": "decade"
+        }
+      ]
+    }
+  ],
+  "facetGroups": {
+    "decade": {
+      "minCount": 5,
+      "facets": [
+        {
+          "label": "Before 1910",
+          "query": {
+            "yearTo": 1909
+          }
+        },
+        {
+          "label": "1910s",
+          "query": {
+            "yearFrom": 1910,
+            "yearTo": 1919
+          }
+        },
+        {
+          "label": "1920s",
+          "query": {
+            "yearFrom": 1920,
+            "yearTo": 1929
+          }
+        },
+        {
+          "label": "1930s",
+          "query": {
+            "yearFrom": 1930,
+            "yearTo": 1939
+          }
+        },
+        {
+          "label": "1940s",
+          "query": {
+            "yearFrom": 1940,
+            "yearTo": 1949
+          }
+        },
+        {
+          "label": "1950s",
+          "query": {
+            "yearFrom": 1950,
+            "yearTo": 1959
+          }
+        },
+        {
+          "label": "1960s",
+          "query": {
+            "yearFrom": 1960,
+            "yearTo": 1969
+          }
+        },
+        {
+          "label": "1970s",
+          "query": {
+            "yearFrom": 1970,
+            "yearTo": 1979
+          }
+        }
+      ]
+    },
+    "animDecade": {
+      "minCount": 10,
+      "facets": [
+        {
+          "label": "Before 1930",
+          "query": {
+            "yearTo": 1929
+          }
+        },
+        {
+          "label": "1930s",
+          "query": {
+            "yearFrom": 1930,
+            "yearTo": 1939
+          }
+        },
+        {
+          "label": "1940s",
+          "query": {
+            "yearFrom": 1940,
+            "yearTo": 1949
+          }
+        },
+        {
+          "label": "1950s",
+          "query": {
+            "yearFrom": 1950,
+            "yearTo": 1959
+          }
+        }
+      ]
+    },
+    "tvGenre": {
+      "minCount": 20,
+      "facets": [
+        {
+          "label": "Sitcoms & Comedy",
+          "query": {
+            "subjectAny": [
+              "sitcom",
+              "comedy"
+            ]
+          }
+        },
+        {
+          "label": "Westerns",
+          "query": {
+            "subjectAny": [
+              "western",
+              "westerns"
+            ]
+          }
+        },
+        {
+          "label": "Drama",
+          "query": {
+            "subjectAny": [
+              "drama"
+            ]
+          }
+        },
+        {
+          "label": "Crime & Mystery",
+          "query": {
+            "subjectAny": [
+              "crime",
+              "mystery",
+              "detective",
+              "police"
+            ]
+          }
+        },
+        {
+          "label": "Sci-Fi & Fantasy",
+          "query": {
+            "subjectAny": [
+              "science fiction",
+              "sci-fi",
+              "fantasy"
+            ]
+          }
+        },
+        {
+          "label": "Anthology",
+          "query": {
+            "subjectAny": [
+              "anthology"
+            ]
+          }
+        },
+        {
+          "label": "Variety",
+          "query": {
+            "subjectAny": [
+              "variety",
+              "variety show"
+            ]
+          }
+        },
+        {
+          "label": "Game Shows",
+          "query": {
+            "subjectAny": [
+              "game show"
+            ]
+          }
+        }
+      ]
+    },
+    "tvDecade": {
+      "minCount": 20,
+      "facets": [
+        {
+          "label": "1940s",
+          "query": {
+            "collections": [
+              "classic_tv_1940s"
+            ]
+          }
+        },
+        {
+          "label": "1950s",
+          "query": {
+            "collections": [
+              "classic_tv_1950s"
+            ]
+          }
+        },
+        {
+          "label": "1960s",
+          "query": {
+            "collections": [
+              "classic_tv_1960s"
+            ]
+          }
+        },
+        {
+          "label": "1970s",
+          "query": {
+            "collections": [
+              "classic_tv_1970s"
+            ]
+          }
+        },
+        {
+          "label": "1980s",
+          "query": {
+            "collections": [
+              "classic_tv_1980s"
+            ]
+          }
+        },
+        {
+          "label": "1990s",
+          "query": {
+            "collections": [
+              "classic_tv_1990s"
+            ]
+          }
+        }
+      ]
+    }
+  }
 }
