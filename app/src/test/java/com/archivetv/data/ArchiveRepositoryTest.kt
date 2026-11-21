@@ -2,8 +2,7 @@ package com.archivetv.data
 
 import com.archivetv.data.api.InternetArchiveService
 import com.google.common.truth.Truth.assertThat
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import com.archivetv.data.api.archiveMoshi
 import kotlinx.coroutines.test.runTest
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -19,7 +18,7 @@ class ArchiveRepositoryTest {
 
     @Before fun setUp() {
         server = MockWebServer().apply { start() }
-        val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+        val moshi = archiveMoshi()
         val service = Retrofit.Builder()
             .baseUrl(server.url("/"))
             .addConverterFactory(MoshiConverterFactory.create(moshi))
@@ -58,5 +57,34 @@ class ArchiveRepositoryTest {
         assertThat(detail.item.title).isEqualTo("Film One")
         assertThat(detail.item.description).isEqualTo("desc")
         assertThat(detail.playable?.fileName).isEqualTo("film.mp4")
+    }
+
+    @Test fun detailHandlesArrayFieldsAndHtmlDescription() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":["Tom &amp; Jerry","Alt title"],
+                "description":["<p>First&nbsp;part.</p>","Second<br/>line"],
+                "year":["1940"]},
+                "files":[]}"""
+        ))
+        val detail = repo.detail("id1")
+        assertThat(detail.item.title).isEqualTo("Tom & Jerry")
+        assertThat(detail.item.description).isEqualTo("First part.\n\nSecond\nline")
+        assertThat(detail.item.year).isEqualTo("1940")
+    }
+
+    @Test fun searchHandlesArrayTitleAndNumericYear() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"response":{"numFound":1,"docs":[{"identifier":"id3","title":["Show","Other"],"year":1955}]}}"""
+        ))
+        val item = repo.search("show", limit = 10).single()
+        assertThat(item.title).isEqualTo("Show")
+        assertThat(item.year).isEqualTo("1955")
+    }
+
+    @Test fun blankTitleFallsBackToIdentifier() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"response":{"numFound":1,"docs":[{"identifier":"id4","title":"  "}]}}"""
+        ))
+        assertThat(repo.search("x", limit = 10).single().title).isEqualTo("id4")
     }
 }

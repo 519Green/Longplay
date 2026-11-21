@@ -1,5 +1,6 @@
 package com.archivetv.ui.home
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,6 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.focusRestorer
@@ -37,6 +42,7 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import com.archivetv.ArchiveTvApp
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.ui.components.ArchiveCard
 import com.archivetv.domain.BrowseRow
 
 @Composable
@@ -114,9 +120,27 @@ private fun Hero(item: ArchiveItem, onClick: () -> Unit) {
             AsyncImage(
                 model = item.thumbnailUrl,
                 contentDescription = item.title,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
-            Text(item.title, Modifier.align(Alignment.BottomStart).padding(16.dp))
+            Box(
+                Modifier
+                    .fillMaxSize()
+                    .background(
+                        Brush.verticalGradient(
+                            0.35f to Color.Transparent,
+                            1f to Color.Black.copy(alpha = 0.85f),
+                        )
+                    )
+            )
+            Text(
+                item.title,
+                style = MaterialTheme.typography.headlineSmall,
+                color = Color.White,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.align(Alignment.BottomStart).padding(16.dp),
+            )
         }
     }
 }
@@ -124,27 +148,23 @@ private fun Hero(item: ArchiveItem, onClick: () -> Unit) {
 @Composable
 private fun CardRow(title: String, items: List<ArchiveItem>, onClick: (ArchiveItem) -> Unit) {
     Column {
-        Text(title, style = MaterialTheme.typography.titleMedium)
+        Text(
+            title,
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
         LazyRow(
             modifier = Modifier.focusRestorer(),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             itemsIndexed(items) { index, item ->
-                Card(
+                ArchiveCard(
+                    item = item,
                     onClick = { onClick(item) },
-                    modifier = Modifier
-                        .width(160.dp)
-                        .height(90.dp)
-                        .focusProperties {
-                            if (index == 0) left = FocusRequester.Cancel
-                        },
-                ) {
-                    AsyncImage(
-                        model = item.thumbnailUrl,
-                        contentDescription = item.title,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                }
+                    cardModifier = Modifier.focusProperties {
+                        if (index == 0) left = FocusRequester.Cancel
+                    },
+                )
             }
         }
     }

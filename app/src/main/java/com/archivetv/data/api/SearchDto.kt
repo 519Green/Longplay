@@ -15,6 +15,6 @@ data class SearchBodyDto(
 @JsonClass(generateAdapter = true)
 data class SearchDocDto(
     val identifier: String,
-    val title: String? = null,
-    val year: String? = null,
+    @StringOrList val title: List<String> = emptyList(),
+    @StringOrList val year: List<String> = emptyList(),
 )

@@ -10,9 +10,9 @@ data class MetadataResponseDto(
 
 @JsonClass(generateAdapter = true)
 data class MetadataBodyDto(
-    val title: String? = null,
-    val description: String? = null,
-    val year: String? = null,
+    @StringOrList val title: List<String> = emptyList(),
+    @StringOrList val description: List<String> = emptyList(),
+    @StringOrList val year: List<String> = emptyList(),
 )
 
 @JsonClass(generateAdapter = true)

@@ -22,11 +22,10 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.tv.material3.Button
-import androidx.tv.material3.Card
 import androidx.tv.material3.Text
-import coil.compose.AsyncImage
 import com.archivetv.ArchiveTvApp
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.ui.components.ArchiveCard
 
 @Composable
 fun SearchScreen(
@@ -72,11 +71,7 @@ fun SearchScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)) {
             items(state.results) { item ->
-                Card(onClick = { onItemClick(item) },
-                    modifier = Modifier.width(160.dp).height(90.dp)) {
-                    AsyncImage(model = item.thumbnailUrl,
-                        contentDescription = item.title, modifier = Modifier.fillMaxSize())
-                }
+                ArchiveCard(item = item, onClick = { onItemClick(item) })
             }
         }
     }

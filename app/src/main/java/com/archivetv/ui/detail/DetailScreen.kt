@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -31,23 +32,40 @@ fun DetailScreen(
     val item = state.item
     Box(Modifier.fillMaxSize()) {
         if (item != null) {
-            AsyncImage(
-                model = item.thumbnailUrl,
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
+            val background = MaterialTheme.colorScheme.background
+            Box(
+                Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.6f)
+                    .fillMaxHeight(0.7f)
                     .align(Alignment.TopCenter),
-            )
+            ) {
+                AsyncImage(
+                    model = item.thumbnailUrl,
+                    contentDescription = item.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(),
+                )
+                // Fade the backdrop into the page so there is no hard bottom edge.
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.verticalGradient(
+                                0f to Color.Transparent,
+                                0.45f to background.copy(alpha = 0.35f),
+                                1f to background,
+                            )
+                        )
+                )
+            }
+            // Darken the left side behind the text block.
             Box(
                 Modifier
                     .fillMaxSize()
                     .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.4f to Color.Transparent,
-                            1f to Color.Black,
+                        Brush.horizontalGradient(
+                            0f to background.copy(alpha = 0.85f),
+                            0.6f to Color.Transparent,
                         )
                     )
             )
@@ -58,13 +76,27 @@ fun DetailScreen(
                     .padding(48.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(item.title, style = MaterialTheme.typography.headlineLarge)
-                item.year?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                item.description?.let {
-                    androidx.compose.material3.Text(
+                Text(
+                    item.title,
+                    style = MaterialTheme.typography.headlineLarge,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                item.year?.let {
+                    Text(
                         it,
-                        maxLines = 4,
-                        color = Color.White,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                item.description?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 5,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -78,7 +110,11 @@ fun DetailScreen(
             }
         }
         state.error?.let {
-            Text(it, modifier = Modifier.align(Alignment.Center))
+            Text(
+                it,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.align(Alignment.Center),
+            )
         }
     }
 }

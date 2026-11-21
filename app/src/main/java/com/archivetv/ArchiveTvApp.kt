@@ -7,11 +7,10 @@ import com.archivetv.data.LibraryRepository
 import com.archivetv.data.PlayableFileSelector
 import com.archivetv.data.SearchQueryBuilder
 import com.archivetv.data.api.InternetArchiveService
+import com.archivetv.data.api.archiveMoshi
 import com.archivetv.data.config.BrowseConfigLoader
 import com.archivetv.data.db.AppDatabase
 import com.archivetv.domain.BrowseRow
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 
@@ -26,7 +25,7 @@ class ArchiveTvApp : Application() {
 }
 
 class AppContainer(app: Application) {
-    private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
+    private val moshi = archiveMoshi()
 
     private val service: InternetArchiveService = Retrofit.Builder()
         .baseUrl("https://archive.org/")
