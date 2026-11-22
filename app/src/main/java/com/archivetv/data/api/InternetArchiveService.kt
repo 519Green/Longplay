@@ -13,6 +13,16 @@ interface InternetArchiveService {
         @Query("page") page: Int = 1,
     ): SearchResponseDto
 
+    /** Search with caller-chosen fields (Live Music Archive). */
+    @GET("advancedsearch.php?output=json")
+    suspend fun searchLive(
+        @Query("q") query: String,
+        @Query("fl[]") fields: List<String>,
+        @Query("rows") rows: Int,
+        @Query("sort[]") sort: String,
+        @Query("page") page: Int = 1,
+    ): LiveResponseDto
+
     @GET("metadata/{identifier}")
     suspend fun metadata(@Path("identifier") identifier: String): MetadataResponseDto
 }

@@ -27,7 +27,7 @@ class SearchQueryBuilder {
     /** High Fidelity Emporium (member-uploaded CD and record rips): title and creator only. */
     private val communityAudio = listOf("hifidelity")
 
-    private fun terms(text: String) = text.replace(luceneSyntax, " ")
+    internal fun terms(text: String) = text.replace(luceneSyntax, " ")
         .split(Regex("\\s+"))
         .filter { it.isNotBlank() && it !in operators }
         .joinToString(" ")
@@ -83,6 +83,6 @@ class SearchQueryBuilder {
 
     private val unsafeId = Regex("[^A-Za-z0-9_.-]")
 
-    private fun anyOf(collections: List<String>) =
+    internal fun anyOf(collections: List<String>) =
         "collection:(${collections.joinToString(" OR ") { it.replace(unsafeId, "") }})"
 }

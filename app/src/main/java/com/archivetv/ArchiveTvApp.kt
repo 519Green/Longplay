@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.room.Room
 import com.archivetv.data.ArchiveRepository
 import com.archivetv.data.LibraryRepository
+import com.archivetv.data.LiveMusicRepository
 import com.archivetv.data.PlayableFileSelector
 import com.archivetv.data.SearchQueryBuilder
 import com.archivetv.data.api.InternetArchiveService
@@ -45,6 +46,7 @@ class AppContainer(app: Application) {
     val queryBuilder = SearchQueryBuilder()
 
     val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder)
+    val liveMusic = LiveMusicRepository(service)
     val libraryRepository = LibraryRepository(db.favoriteDao(), db.resumeDao())
     val queueDao = db.queueDao()
 

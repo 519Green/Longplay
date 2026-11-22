@@ -60,4 +60,28 @@ class CatalogLiveCheckTest {
             println("EPISODES %-28s %4d  %s".format(id, files.size, listOf(0, 1, 2, files.size / 2, files.size - 1).filter { it in files.indices }.distinct().map { files[it] }.joinToString(" | ") { it.title.take(38) }))
         }
     }
+
+    /** Live Music discovery rows and one known artist year return concerts. */
+    @Test fun everyLiveQueryReturnsResults() = runBlocking {
+        assumeTrue(System.getenv("ARCHIVETV_LIVE_CHECK") != null)
+        val service = Retrofit.Builder()
+            .baseUrl("https://archive.org/")
+            .addConverterFactory(MoshiConverterFactory.create(archiveMoshi()))
+            .build()
+            .create(InternetArchiveService::class.java)
+        val live = com.archivetv.data.LiveMusicRepository(service)
+        val today = java.util.Calendar.getInstance()
+        val month = today.get(java.util.Calendar.MONTH) + 1
+        val day = today.get(java.util.Calendar.DAY_OF_MONTH)
+        val counts = linkedMapOf(
+            "thisDay" to live.thisDay(month, day).also { println("LIVE thisDay first: ${it.firstOrNull()}") }.size,
+            "topRated" to live.topRated().also { println("LIVE topRated first: ${it.firstOrNull()}") }.size,
+            "mostPlayed" to live.mostPlayed().size,
+            "popularArtists" to live.popularArtists().also { println("LIVE popular: ${it.take(5)}") }.size,
+            "concerts GratefulDead 1977" to live.concerts("GratefulDead", 1977).size,
+            "searchConcerts" to live.searchConcerts("grateful dead").size,
+        )
+        counts.forEach { (k, v) -> println("LIVE %-28s %5d".format(k, v)) }
+        assertWithMessage("live queries with no results").that(counts.filterValues { it == 0 }.keys).isEmpty()
+    }
 }
