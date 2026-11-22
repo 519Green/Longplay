@@ -6,6 +6,8 @@ import com.squareup.moshi.JsonClass
 data class MetadataResponseDto(
     val metadata: MetadataBodyDto? = null,
     val files: List<MetadataFileDto> = emptyList(),
+    /** Review list ([{"stars":"5",...}]); read loosely because its shape is not guaranteed. */
+    val reviews: Any? = null,
 )
 
 @JsonClass(generateAdapter = true)
@@ -19,6 +21,9 @@ data class MetadataBodyDto(
     @StringOrList val date: List<String> = emptyList(),
     @StringOrList val venue: List<String> = emptyList(),
     @StringOrList val coverage: List<String> = emptyList(),
+    /** "silent" / "sound", and "black and white" / "color" on many films. */
+    @StringOrList val sound: List<String> = emptyList(),
+    @StringOrList val color: List<String> = emptyList(),
 )
 
 @JsonClass(generateAdapter = true)

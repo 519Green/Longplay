@@ -3,6 +3,10 @@ package com.archivetv.data
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.SearchDocDto
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.ItemFacts
+import com.archivetv.domain.averageStars
+import com.archivetv.domain.displayYear
+import com.archivetv.domain.itemTags
 import com.archivetv.domain.ItemKind
 import com.archivetv.domain.LiveInfo
 import com.archivetv.domain.artistIdOf
@@ -18,6 +22,9 @@ data class ItemDetail(
     val kind: ItemKind = ItemKind.VIDEO,
     val isLibriVox: Boolean = false,
     val live: LiveInfo? = null,
+    val facts: ItemFacts = ItemFacts(),
+    /** The item's collections, in metadata order. */
+    val collections: List<String> = emptyList(),
 )
 
 data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
@@ -85,14 +92,38 @@ class ArchiveRepository(
             description = description.ifBlank { null },
         )
         val collections = meta?.collection.orEmpty()
+        val files = fileSelector.selectAll(identifier, dto.files)
+        val (rating, reviews) = averageStars(stars(dto.reviews))
+        val durations = files.mapNotNull { it.durationSec }
+        val facts = ItemFacts(
+            year = displayYear(item.title, item.year),
+            // A total is only honest when every file reports its length.
+            runtimeSec = durations.takeIf { it.isNotEmpty() && it.size == files.size }?.sum(),
+            totalRuntime = files.size > 1,
+            rating = rating,
+            reviews = reviews,
+            tags = itemTags(meta?.sound?.firstOrNull(), meta?.color?.firstOrNull()),
+        )
         return ItemDetail(
             item = item,
-            files = fileSelector.selectAll(identifier, dto.files),
+            files = files,
+            facts = facts,
+            collections = collections,
             kind = itemKind(collections, fileSelector.hasVideo(dto.files)),
             isLibriVox = "librivoxaudio" in collections,
             live = if (meta?.mediatype == "etree") liveInfo(collections, meta, item.title) else null,
         )
     }
+
+    /** Star values from the loosely typed `reviews` array. */
+    private fun stars(reviews: Any?): List<Double> =
+        (reviews as? List<*>).orEmpty().mapNotNull { r ->
+            when (val v = (r as? Map<*, *>)?.get("stars")) {
+                is Number -> v.toDouble()
+                is String -> v.trim().toDoubleOrNull()
+                else -> null
+            }
+        }
 
     private fun liveInfo(collections: List<String>, meta: com.archivetv.data.api.MetadataBodyDto, title: String): LiveInfo? {
         val artistId = artistIdOf(collections) ?: return null

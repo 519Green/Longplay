@@ -211,4 +211,30 @@ class ArchiveRepositoryTest {
         val d = repo.detail("show")
         assertThat(d.files.map { it.fileName }).containsExactly("t1.mp3")
     }
+
+    @Test fun detailBuildsFactsFromReviewsLengthsAndTags() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Night Film (1949)","year":"2025","sound":"silent","color":"black and white",
+                "collection":["Film_Noir","feature_films"]},
+                "reviews":[{"stars":"5"},{"stars":4},{"stars":"x"}],
+                "files":[{"name":"film.mp4","format":"h.264","length":"5520"}]}"""
+        ))
+        val d = repo.detail("id1")
+        assertThat(d.facts.year).isEqualTo("1949")
+        assertThat(d.facts.runtimeSec).isEqualTo(5520.0)
+        assertThat(d.facts.totalRuntime).isFalse()
+        assertThat(d.facts.rating).isEqualTo(4.5)
+        assertThat(d.facts.reviews).isEqualTo(2)
+        assertThat(d.facts.tags).containsExactly("Silent", "B&W").inOrder()
+        assertThat(d.collections).containsExactly("Film_Noir", "feature_films").inOrder()
+    }
+
+    @Test fun detailToleratesReviewsThatAreNotAList() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Film"},"reviews":{"odd":true},"files":[]}"""
+        ))
+        val d = repo.detail("id1")
+        assertThat(d.facts.rating).isNull()
+        assertThat(d.facts.reviews).isEqualTo(0)
+    }
 }
