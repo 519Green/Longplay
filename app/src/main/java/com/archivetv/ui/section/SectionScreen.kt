@@ -68,7 +68,8 @@ fun SectionScreen(
     val tiles = remember(section) {
         // Live Music is not an IA catalog query, so Listen gets it as a fixed first tile.
         val live = if (sectionId == "listen") listOf("Live Music" to onOpenLive) else emptyList()
-        live + section.children.filterIsInstance<CategoryNode.Group>().map { g -> g.title to { onOpenGroup(g.id) } }
+        live + section.children.filter { it is CategoryNode.Group || it is CategoryNode.Derived }
+            .map { g -> g.title to { onOpenGroup(g.id) } }
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

@@ -53,6 +53,7 @@ import com.archivetv.ui.home.HomeScreen
 import com.archivetv.ui.mylist.MyListScreen
 import com.archivetv.ui.player.PlayerScreen
 import com.archivetv.ui.browse.BrowseScreen
+import com.archivetv.ui.browse.DerivedBrowseScreen
 import com.archivetv.ui.search.SearchScreen
 import com.archivetv.ui.live.ArtistScreen
 import com.archivetv.ui.live.ArtistsScreen
@@ -82,6 +83,7 @@ object Routes {
     const val SECTION = "section/{id}"
     const val TILES = "tiles/{id}"
     const val BROWSE = "browse/{id}"
+    const val BROWSE_DERIVED = "browse/derived/{group}/{key}"
     const val NOW_PLAYING = "nowplaying"
     const val LIVE = "live"
     const val LIVE_ARTISTS = "live/artists"
@@ -92,6 +94,8 @@ object Routes {
     fun section(id: String) = "section/$id"
     fun tiles(id: String) = "tiles/$id"
     fun browse(id: String) = "browse/$id"
+    /** Group ids are catalog ids and keys are `[a-z0-9-]` slugs, so neither needs encoding. */
+    fun browseDerived(group: String, key: String) = "browse/derived/$group/$key"
 }
 
 private data class Destination(val route: String, val label: String, val icon: ImageVector)
@@ -288,6 +292,24 @@ fun AppNavHost(
                     groupId = entry.arguments!!.getString("id")!!,
                     onOpenGroup = { nav.navigate(Routes.tiles(it)) },
                     onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                    onOpenEntry = { group, key -> nav.navigate(Routes.browseDerived(group, key)) },
+                )
+            }
+            composable(
+                Routes.BROWSE_DERIVED,
+                arguments = listOf(
+                    navArgument("group") { type = NavType.StringType },
+                    navArgument("key") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                DerivedBrowseScreen(
+                    groupId = entry.arguments!!.getString("group")!!,
+                    key = entry.arguments!!.getString("key")!!,
+                    onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                    onPlayAll = { items, shuffle ->
+                        audio.playAll(items, shuffle)
+                        nav.navigate(Routes.NOW_PLAYING)
+                    },
                 )
             }
             composable(Routes.BROWSE, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->

@@ -13,6 +13,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.produceState
+import com.archivetv.domain.CategoryNode
+import com.archivetv.ui.live.Load
+import com.archivetv.ui.section.derivedLeaf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -145,9 +150,14 @@ fun BrowseScreen(
 @Composable
 private fun browseViewModel(leafId: String): BrowseViewModel? {
     val app = LocalContext.current.applicationContext as ArchiveTvApp
-    val c = app.container
-    val leaf = c.catalog.leaf(leafId) ?: return null
-    return viewModel(key = "browse-$leafId", factory = object : ViewModelProvider.Factory {
+    val leaf = app.container.catalog.leaf(leafId) ?: return null
+    return browseViewModel(leaf)
+}
+
+@Composable
+private fun browseViewModel(leaf: CategoryNode.Leaf): BrowseViewModel {
+    val c = (LocalContext.current.applicationContext as ArchiveTvApp).container
+    return viewModel(key = "browse-${leaf.id}", factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             BrowseViewModel(
@@ -158,4 +168,44 @@ private fun browseViewModel(leafId: String): BrowseViewModel? {
                 count = c.archiveRepository::count,
             ) as T
     })
+}
+
+/**
+ * Browse for one entry of a derived group (a show, studio, sponsor or radio
+ * collection). The entry is looked up again from the group, so the route
+ * survives process death; a key that no longer exists shows "Unknown category".
+ */
+@Composable
+fun DerivedBrowseScreen(
+    groupId: String,
+    key: String,
+    onItemClick: (ArchiveItem) -> Unit,
+    onPlayAll: (items: List<ArchiveItem>, shuffle: Boolean) -> Unit = { _, _ -> },
+) {
+    val app = LocalContext.current.applicationContext as ArchiveTvApp
+    var attempt by remember { mutableIntStateOf(0) }
+    val resolved by produceState<Load<CategoryNode.Leaf?>>(Load.Loading, groupId, key, attempt) {
+        value = Load.Loading
+        val node = app.container.catalog.derived(groupId)
+        value = if (node == null) {
+            Load.Done(null)
+        } else {
+            runCatching { app.container.derivedGroups.entry(node, key)?.let { derivedLeaf(node, it) } }
+                .fold({ Load.Done(it) }, { Load.Failed })
+        }
+    }
+    when (val st = resolved) {
+        Load.Loading -> Text("Loading…", modifier = Modifier.padding(Dimens.OverscanHorizontal))
+        Load.Failed -> Button(onClick = { attempt++ }, modifier = Modifier.padding(Dimens.OverscanHorizontal)) {
+            Text("Couldn't load. Retry")
+        }
+        is Load.Done -> {
+            val leaf = st.value
+            if (leaf == null) {
+                Text("Unknown category", modifier = Modifier.padding(Dimens.OverscanHorizontal))
+            } else {
+                BrowseScreen(leafId = leaf.id, onItemClick = onItemClick, onPlayAll = onPlayAll, viewModel = browseViewModel(leaf))
+            }
+        }
+    }
 }

@@ -58,7 +58,6 @@ private val homeTiles = listOf(
     "tv-decades" to "TV by Decade",
     "tv-genres" to "TV Genres",
     "tv-shows" to "TV Shows",
-    "animation-studios" to "Animation Studios",
     "edu-studios" to "Educational Studios",
 )
 
@@ -74,7 +73,7 @@ fun HomeScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val app = LocalContext.current.applicationContext as ArchiveTvApp
     val tiles = remember {
-        homeTiles.filter { app.container.catalog.group(it.first) != null }
+        homeTiles.filter { app.container.catalog.node(it.first) != null }
             .map { (id, label) -> label to { onOpenGroup(id) } }
     }
     HomeContent(
