@@ -54,6 +54,7 @@ import com.archivetv.ui.mylist.MyListScreen
 import com.archivetv.ui.player.PlayerScreen
 import com.archivetv.ui.browse.BrowseScreen
 import com.archivetv.ui.search.SearchScreen
+import com.archivetv.ui.live.LiveMusicScreen
 import com.archivetv.ui.section.SectionScreen
 import com.archivetv.ui.section.TilesScreen
 import com.archivetv.ui.theme.SectionIcons
@@ -80,6 +81,10 @@ object Routes {
     const val TILES = "tiles/{id}"
     const val BROWSE = "browse/{id}"
     const val NOW_PLAYING = "nowplaying"
+    const val LIVE = "live"
+    const val LIVE_ARTISTS = "live/artists"
+    const val LIVE_ARTIST = "live/artist/{id}"
+    fun liveArtist(id: String) = "live/artist/$id"
     fun detail(id: String) = "detail/$id"
     fun player(id: String, fileIndex: Int? = null) = "player/$id" + (fileIndex?.let { "?file=$it" } ?: "")
     fun section(id: String) = "section/$id"
@@ -257,6 +262,14 @@ fun AppNavHost(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
                     onOpenGroup = { nav.navigate(Routes.tiles(it)) },
                     onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                    onOpenLive = { nav.navigate(Routes.LIVE) },
+                )
+            }
+            composable(Routes.LIVE) {
+                LiveMusicScreen(
+                    onOpenRecording = { nav.navigate(Routes.detail(it)) },
+                    onOpenArtist = { nav.navigate(Routes.liveArtist(it)) },
+                    onAllArtists = { nav.navigate(Routes.LIVE_ARTISTS) },
                 )
             }
             composable(Routes.TILES, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->

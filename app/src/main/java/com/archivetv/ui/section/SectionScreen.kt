@@ -47,6 +47,7 @@ fun SectionScreen(
     onItemClick: (ArchiveItem) -> Unit,
     onOpenGroup: (String) -> Unit,
     onOpenLeaf: (String) -> Unit,
+    onOpenLive: () -> Unit = {},
 ) {
     val app = LocalContext.current.applicationContext as ArchiveTvApp
     val section = app.container.catalog.group(sectionId) ?: run {
@@ -65,7 +66,9 @@ fun SectionScreen(
     })
     val rows by viewModel.rows.collectAsStateWithLifecycle()
     val tiles = remember(section) {
-        section.children.filterIsInstance<CategoryNode.Group>().map { g -> g.title to { onOpenGroup(g.id) } }
+        // Live Music is not an IA catalog query, so Listen gets it as a fixed first tile.
+        val live = if (sectionId == "listen") listOf("Live Music" to onOpenLive) else emptyList()
+        live + section.children.filterIsInstance<CategoryNode.Group>().map { g -> g.title to { onOpenGroup(g.id) } }
     }
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
