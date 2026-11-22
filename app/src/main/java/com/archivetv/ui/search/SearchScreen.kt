@@ -182,6 +182,8 @@ fun SearchScreen(
                 // A focused text field keeps D-pad keys for its cursor, which traps
                 // remote users in it. Up/Down always leave the field.
                 modifier = Modifier
+                    // Wide enough for the label, which otherwise runs past the outline.
+                    .width(400.dp)
                     .focusRequester(fieldFocus)
                     .focusProperties { canFocus = editing }
                     .onFocusChanged {
