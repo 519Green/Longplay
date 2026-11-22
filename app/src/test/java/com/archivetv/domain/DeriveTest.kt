@@ -117,4 +117,27 @@ class DeriveTest {
         assertThat(series.single().label).isEqualTo("Stories of the Century")
         assertThat(series.single().query.titleAny).containsExactly("STORIES OF THE CENTURY")
     }
+
+    @Test fun punctuationVariantsAreOneSeries() {
+        val entries = seriesEntries(
+            docs("One Step Beyond - a", 4) + docs("One Step Beyond, Episode ", 4) + docs("Climax! - b", 2) + docs("Climax - c", 2),
+            shows,
+        )
+        assertThat(entries.map { it.key }).containsExactly("one-step-beyond", "climax")
+    }
+
+    @Test fun keysAreUniqueAndNeverEmpty() {
+        val entries = seriesEntries(docs("日本 - a", 4) + docs("中国 - b", 4) + docs("Dragnet - c", 4), shows)
+        val keys = entries.map { it.key }
+        assertThat(keys).hasSize(3)
+        assertThat(keys.toSet()).hasSize(3)
+        keys.forEach { assertThat(it).matches("^[a-z0-9]+(-[a-z0-9]+)*$") }
+    }
+
+    @Test fun singleWordPrefixDoesNotSwallowAnotherProducer() {
+        val values = List(5) { "Union Films" } + List(5) { "Union Pacific Railroad" } +
+            List(5) { "Allen, Woody" } + List(5) { "Allen, Ken" }
+        assertThat(valueEntries(values, creators(minItems = 5)).map { it.label })
+            .containsExactly("Allen, Ken", "Allen, Woody", "Union Films", "Union Pacific Railroad")
+    }
 }

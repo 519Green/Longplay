@@ -57,12 +57,13 @@ private fun seriesPrefix(title: String): String {
     return title.substring(0, cut).trim().trim(*quoteChars).trim()
 }
 
-fun seriesKey(title: String): String =
-    seriesPrefix(title).filterNot { it in quoteChars }
-        .lowercase().replace(spaces, " ").trim()
-        .replace(leadingArticle, "")
+/** Words of the prefix, lowercase, punctuation dropped ("Climax!" and "Climax" are one series). */
+fun seriesKey(title: String): String {
+    val words = seriesPrefix(title).lowercase().split(nonWord).filter { it.isNotEmpty() }
+    return (if (words.size > 1 && words.first() in setOf("the", "a")) words.drop(1) else words).joinToString(" ")
+}
 
-fun seriesEntries(docs: List<TitleDoc>, rule: DeriveRule.TitleSeries): List<DerivedEntry> =
+private fun seriesEntriesRanked(docs: List<TitleDoc>, rule: DeriveRule.TitleSeries): List<DerivedEntry> =
     docs.groupBy { seriesKey(it.title) }
         .filterKeys { it.isNotEmpty() }
         .filterValues { it.size >= rule.minItems }
@@ -84,7 +85,7 @@ fun seriesEntries(docs: List<TitleDoc>, rule: DeriveRule.TitleSeries): List<Deri
 
 private val nonNames = setOf("unknown", "various", "anonymous", "public domain", "pd", "n/a", "none", "newsreel")
 private val stopWords = setOf(
-    "films", "film", "inc", "incorporated", "corporation", "corp", "company", "co", "division",
+    "films", "film", "inc", "incorporated", "corporation", "corp", "company", "co", "division", "motor",
     "productions", "production", "pictures", "organization", "instructional", "educational", "the",
 )
 private val parenAfterFirstWord = Regex("""^(\S+)\s+\(([^)]+)\)(.*)$""")
@@ -93,7 +94,8 @@ private val nonWord = Regex("[^\\p{L}\\p{N}]+")
 fun valueKey(value: String): String {
     val lower = value.trim().lowercase()
     if (lower in nonNames || "internet archive" in lower) return ""
-    val head = lower.substringBefore(',')
+    // "Firm Name, Inc." loses its tail; "Surname, Forename" (one word before the comma) stays whole.
+    val head = if (lower.substringBefore(',').trim().split(spaces).size > 1) lower.substringBefore(',') else lower
     val reordered = parenAfterFirstWord.matchEntire(head)?.let { m ->
         "${m.groupValues[2]} ${m.groupValues[1]}${m.groupValues[3]}"
     } ?: head
@@ -103,7 +105,7 @@ fun valueKey(value: String): String {
         .joinToString(" ")
 }
 
-fun valueEntries(values: List<String>, rule: DeriveRule.FieldValues): List<DerivedEntry> {
+private fun valueEntriesRanked(values: List<String>, rule: DeriveRule.FieldValues): List<DerivedEntry> {
     // Spellings grouped by key; keys with the same tokens in another order are one group.
     val byKey = values.map { it.trim() }.filter { it.isNotEmpty() }
         .groupBy { valueKey(it) }.filterKeys { it.isNotEmpty() }
@@ -121,7 +123,8 @@ fun valueEntries(values: List<String>, rule: DeriveRule.FieldValues): List<Deriv
         val roots = groups.keys
             .filter { other -> tokens.getValue(other).size > t.size && tokens.getValue(other).subList(0, t.size) == t }
             .map(::root).distinct()
-        if (roots.size == 1) parent[k] = roots.single()
+        // A one-word key is too vague to claim a longer name ("Union" is not "Union Pacific").
+        if (roots.size == 1 && t.size > 1) parent[k] = roots.single()
     }
     val merged = groups.entries.groupBy({ root(it.key) }, { it.value }).mapValues { (_, lists) -> lists.flatten() }
 
@@ -142,7 +145,7 @@ fun valueEntries(values: List<String>, rule: DeriveRule.FieldValues): List<Deriv
 
 // ---- Sub-collections ----
 
-fun subcollectionEntries(docs: List<CollectionDoc>, rule: DeriveRule.Subcollections): List<DerivedEntry> =
+private fun subcollectionEntriesRanked(docs: List<CollectionDoc>, rule: DeriveRule.Subcollections): List<DerivedEntry> =
     docs.filter { !it.identifier.startsWith("fav-") && it.downloads > 0 }
         .sortedByDescending { it.downloads }
         .take(rule.limit)
@@ -158,7 +161,7 @@ private val minorWords = setOf("a", "an", "and", "the", "of", "in", "on", "at", 
 
 /**
  * A metadata value as a tile label: library-style inverted names read naturally
- * ("Handy (Jam) Organization" -> "Jam Handy Organization"), and values in all
+ * ("Smith (John) Productions" -> "John Smith Productions"), and values in all
  * capitals, all lower case or sentence case get title case. Queries keep the raw value.
  */
 fun displayLabel(raw: String): String {
@@ -167,7 +170,7 @@ fun displayLabel(raw: String): String {
     } ?: raw.trim()
     val words = text.split(' ').filter { it.isNotEmpty() }
     val letters = text.filter { it.isLetter() }
-    // A single all-caps word is usually an acronym (NASA, RCA); leave it.
+    // A single all-caps word is usually an acronym (an agency's initials); leave it.
     val allUpper = words.size > 1 && letters.isNotEmpty() && letters.all { it.isUpperCase() }
     val allLower = letters.isNotEmpty() && letters.all { it.isLowerCase() }
     val sentenceCase = words.size > 1 && words.drop(1).all { w -> w.first().let { !it.isLetter() || it.isLowerCase() } }
@@ -178,8 +181,29 @@ fun displayLabel(raw: String): String {
     }.joinToString(" ")
 }
 
+/** Route keys must be unique and non-empty: "" becomes "entry", repeats get "-2", "-3". */
+private fun List<DerivedEntry>.withUniqueKeys(): List<DerivedEntry> {
+    val used = mutableSetOf<String>()
+    return map { e ->
+        val base = e.key.ifEmpty { "entry" }
+        var key = base
+        var n = 2
+        while (!used.add(key)) key = "$base-${n++}"
+        e.copy(key = key)
+    }
+}
+
 /** The most common value; ties go to the alphabetically first. */
 private fun mostFrequent(values: List<String>): String =
     values.groupingBy { it }.eachCount().entries
         .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key })
         .first().key
+
+fun seriesEntries(docs: List<TitleDoc>, rule: DeriveRule.TitleSeries): List<DerivedEntry> =
+    seriesEntriesRanked(docs, rule).withUniqueKeys()
+
+fun valueEntries(values: List<String>, rule: DeriveRule.FieldValues): List<DerivedEntry> =
+    valueEntriesRanked(values, rule).withUniqueKeys()
+
+fun subcollectionEntries(docs: List<CollectionDoc>, rule: DeriveRule.Subcollections): List<DerivedEntry> =
+    subcollectionEntriesRanked(docs, rule).withUniqueKeys()

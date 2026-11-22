@@ -6,7 +6,7 @@ import com.archivetv.playback.Run
 
 /**
  * One Up next row: a single file shows its title ("Suspense · The Hitchhiker");
- * a longer run shows a count ("Gunsmoke - Single Episodes · 3 episodes"),
+ * a longer run shows a count ("Frontier Radio - Single Episodes · 3 episodes"),
  * "N more ..." when it is the rest of the item playing now.
  */
 fun runLabel(run: Run, queue: List<QueueEntry>, current: Int): String {
