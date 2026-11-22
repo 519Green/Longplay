@@ -46,7 +46,7 @@ fun averageStars(stars: List<Double>): Pair<Double?, Int> {
     return (if (valid.isEmpty()) null else valid.average()) to valid.size
 }
 
-/** 1530 s -> "26 min"; 5520 s -> "1 h 32 min". */
+/** 1530 s -> "25 min"; 5520 s -> "1 h 32 min". */
 fun durationText(seconds: Double): String {
     val total = (seconds / 60).toInt().coerceAtLeast(1)
     return if (total < 60) "$total min" else "${total / 60} h ${total % 60} min"

@@ -130,10 +130,10 @@ class SearchQueryBuilderTest {
     }
 
     @Test fun audioSearchCoversCuratedAudioAndHifidelityTitles() {
-        assertThat(b.audioSearch("leonard cohen")).isEqualTo(
+        assertThat(b.audioSearch("folk singer")).isEqualTo(
             "((collection:(librivoxaudio OR oldtimeradio OR 78rpm OR album_recordings) AND " +
-                "(title:(leonard cohen) OR subject:(leonard cohen) OR creator:(leonard cohen))) " +
-                "OR (collection:(hifidelity) AND (title:(leonard cohen) OR creator:(leonard cohen)))) AND mediatype:audio"
+                "(title:(folk singer) OR subject:(folk singer) OR creator:(folk singer))) " +
+                "OR (collection:(hifidelity) AND (title:(folk singer) OR creator:(folk singer)))) AND mediatype:audio"
         )
     }
 
@@ -143,8 +143,8 @@ class SearchQueryBuilderTest {
 
     @Test fun scopedVideoSectionUsesItsCollections() {
         val tv = com.archivetv.domain.SearchScope("tv", "TV", com.archivetv.domain.ScopeKind.VIDEO, listOf("classic_tv", "classic_tv_1950s"))
-        assertThat(b.scoped(tv, "lucy", video = true)).isEqualTo(
-            "collection:(classic_tv OR classic_tv_1950s) AND (title:(lucy) OR subject:(lucy) OR creator:(lucy)) AND mediatype:movies"
+        assertThat(b.scoped(tv, "comedy", video = true)).isEqualTo(
+            "collection:(classic_tv OR classic_tv_1950s) AND (title:(comedy) OR subject:(comedy) OR creator:(comedy)) AND mediatype:movies"
         )
     }
 

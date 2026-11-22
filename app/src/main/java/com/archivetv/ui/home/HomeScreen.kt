@@ -151,7 +151,15 @@ fun HomeContent(
     }
     LazyColumn(
         state = listState,
-        modifier = Modifier.fillMaxSize(),
+        modifier = Modifier
+            .fillMaxSize()
+            // Slides arrive a request after the first row. Once the viewer has
+            // pressed a key here (moved, or opened something), they must not be
+            // pulled back to the hero.
+            .onPreviewKeyEvent {
+                if (it.type == KeyEventType.KeyDown) initialFocusDone = true
+                false
+            },
         contentPadding = PaddingValues(top = Dimens.OverscanVertical, bottom = Dimens.OverscanVertical),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
@@ -224,6 +232,7 @@ private fun HeroCarousel(
     var index by rememberSaveable { mutableIntStateOf(0) }
     val current = slides[index.coerceIn(0, slides.lastIndex)]
     var focused by remember { mutableStateOf(false) }
+    LaunchedEffect(slides.size) { if (index > slides.lastIndex) index = 0 }
     LaunchedEffect(focused, index, slides.size) {
         if (!focused && slides.size > 1) {
             delay(8_000)

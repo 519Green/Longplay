@@ -67,7 +67,20 @@ class SearchViewModel(
     fun onQueryChange(q: String) {
         _state.update { it.copy(query = q) }
         debounceJob?.cancel()
-        if (q.trim().length >= 2) {
+        if (q.isBlank()) {
+            // Back to Recent searches and the Browse tiles.
+            searchJob?.cancel()
+            _state.update {
+                it.copy(
+                    watch = emptyList(), watchTotal = 0, listen = emptyList(), listenTotal = 0,
+                    liveArtists = emptyList(), liveConcerts = emptyList(),
+                    loading = false, error = null, searched = null,
+                )
+            }
+        } else if (q.trim().length < 2) {
+            searchJob?.cancel()
+            _state.update { it.copy(loading = false) }
+        } else {
             debounceJob = viewModelScope.launch {
                 delay(SEARCH_DEBOUNCE_MS)
                 run(remember = false)

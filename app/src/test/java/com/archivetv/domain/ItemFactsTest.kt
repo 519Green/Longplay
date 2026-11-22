@@ -5,14 +5,14 @@ import org.junit.Test
 
 class ItemFactsTest {
     @Test fun titleYearBeatsTheYearField() {
-        assertThat(displayYear("Classic Doctor Who S01-26 (1963)", "2022")).isEqualTo("1963")
-        assertThat(displayYear("Planet Of The Apes [1974] TV Series HD", "2024")).isEqualTo("1974")
-        assertThat(displayYear("Benson Complete Series (1979-1986)", "2023")).isEqualTo("1979")
+        assertThat(displayYear("Some Show S01-26 (1963)", "2022")).isEqualTo("1963")
+        assertThat(displayYear("Another Show [1974] TV Series HD", "2024")).isEqualTo("1974")
+        assertThat(displayYear("Third Show Complete Series (1979-1986)", "2023")).isEqualTo("1979")
     }
 
     @Test fun yearFieldShownOnlyWhenPlausible() {
-        assertThat(displayYear("His Girl Friday", "1940")).isEqualTo("1940")
-        assertThat(displayYear("The Set-Up", "2025")).isNull()
+        assertThat(displayYear("A Film", "1940")).isEqualTo("1940")
+        assertThat(displayYear("Later Upload", "2025")).isNull()
         assertThat(displayYear("Odd", "1066")).isNull()
         assertThat(displayYear("Film", null)).isNull()
         assertThat(displayYear("Film", "1950-01-01")).isEqualTo("1950")

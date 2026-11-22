@@ -94,6 +94,9 @@ class DetailViewModel(
     private var progressJob: Job? = null
 
     fun load(identifier: String) {
+        // Coming back to this screen re-runs the caller's effect; keep what is loaded
+        // (More like this, Other recordings) so focus can return to it.
+        if (_state.value.item?.identifier == identifier) return
         viewModelScope.launch {
             runCatching { archive.detail(identifier) }
                 .onSuccess { d ->
@@ -106,7 +109,8 @@ class DetailViewModel(
                         live = d.live,
                         facts = d.facts,
                     )
-                    val related = if (d.live == null) moreLikeThisCollection(d.collections) else null
+                    // Live Music Archive items have Other recordings instead (and are mediatype etree).
+                    val related = if (d.live == null && "etree" !in d.collections) moreLikeThisCollection(d.collections) else null
                     related?.let { collection ->
                         viewModelScope.launch {
                             val mediatype = if (d.kind == ItemKind.VIDEO) "movies" else "audio"

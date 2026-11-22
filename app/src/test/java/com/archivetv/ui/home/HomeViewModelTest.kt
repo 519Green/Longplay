@@ -85,9 +85,21 @@ class HomeViewModelTest {
         gates.getValue("a1").complete(false)
         assertThat(model.state.value.heroSlides.map { it.item.identifier }).containsExactly("a2")
         ids.drop(2).forEach { gates.getValue(it).complete(true) }
-        // Only the first 8 are candidates, and at most 5 become slides.
+        // At most 5 become slides.
         assertThat(model.state.value.heroSlides.map { it.item.identifier })
             .containsExactly("a2", "a3", "a4", "a5", "a6").inOrder()
+    }
+
+    @Test fun heroChecksOnlyTheFirstEightCandidates() = runTest {
+        val checked = mutableListOf<String>()
+        val model = vm(
+            rows = listOf(rowA),
+            loadRow = { (1..9).map { item("a$it") } },
+            // a1..a5 have nothing playable, so a9 would be a slide if it were checked.
+            heroCheck = { checked += it.identifier; if (it.identifier.drop(1).toInt() <= 5) null else HeroSlide(it) },
+        )
+        assertThat(checked).doesNotContain("a9")
+        assertThat(model.state.value.heroSlides.map { it.item.identifier }).containsExactly("a6", "a7", "a8").inOrder()
     }
 
     @Test fun heroCheckFailureCountsAsUnplayable() = runTest {

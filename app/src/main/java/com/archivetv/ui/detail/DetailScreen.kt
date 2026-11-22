@@ -101,6 +101,7 @@ fun DetailScreen(
     }
     val item = state.item
     var showDescription by remember { mutableStateOf(false) }
+    val moreFocus = remember { FocusRequester() }
     Box(Modifier.fillMaxSize()) {
         if (item != null) {
             val multi = state.files.size > 1
@@ -116,6 +117,7 @@ fun DetailScreen(
                         onPlay = { play(identifier, null) },
                         onPlayFromStart = { onPlayFromStart(identifier, state.isAudio) },
                         onMore = { showDescription = true },
+                        moreFocus = moreFocus,
                         onPlayNext = { queue(next = true, fileIndex = null) },
                         onAddToQueue = { queue(next = false, fileIndex = null) },
                         onToggleFavorite = viewModel::toggleFavorite,
@@ -181,7 +183,10 @@ fun DetailScreen(
             }
         }
         if (showDescription && item?.description != null) {
-            DescriptionOverlay(item.title, item.description, onClose = { showDescription = false })
+            DescriptionOverlay(item.title, item.description, onClose = {
+                showDescription = false
+                runCatching { moreFocus.requestFocus() }
+            })
         }
         confirmation?.let {
             Text(
@@ -205,6 +210,7 @@ fun DetailScreen(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun LazyItemScope.Header(
     item: ArchiveItem,
@@ -212,6 +218,7 @@ private fun LazyItemScope.Header(
     onPlay: () -> Unit,
     onPlayFromStart: () -> Unit,
     onMore: () -> Unit,
+    moreFocus: FocusRequester,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
@@ -263,7 +270,12 @@ private fun LazyItemScope.Header(
                     initialFocusDone = true
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            // Wraps onto a second line rather than squeezing the last buttons
+            // when a resumed audiobook shows all six actions.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 Button(
                     onClick = onPlay,
                     enabled = state.playable,
@@ -282,7 +294,9 @@ private fun LazyItemScope.Header(
                     Text(if (state.isFavorite) "Remove from My List" else "Add to My List", maxLines = 1, softWrap = false)
                 }
                 if (truncated) {
-                    Button(onClick = onMore) { Text("More", maxLines = 1, softWrap = false) }
+                    Button(onClick = onMore, modifier = Modifier.focusRequester(moreFocus)) {
+                        Text("More", maxLines = 1, softWrap = false)
+                    }
                 }
             }
             state.unavailableReason?.let {
@@ -317,12 +331,17 @@ private fun DescriptionOverlay(title: String, text: String, onClose: () -> Unit)
             .background(MaterialTheme.colorScheme.background)
             .focusRequester(focus)
             .onPreviewKeyEvent { e ->
+                // OK closes on key-up: closing on key-down hands focus back to the
+                // More button, whose click fires on the same key's key-up.
+                if (e.key == Key.Enter || e.key == Key.DirectionCenter || e.key == Key.NumPadEnter) {
+                    if (e.type == KeyEventType.KeyUp) onClose()
+                    return@onPreviewKeyEvent true
+                }
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.key) {
                     Key.DirectionDown -> { scope.launch { scroll.animateScrollBy(240f) }; true }
                     Key.DirectionUp -> { scope.launch { scroll.animateScrollBy(-240f) }; true }
                     Key.DirectionLeft, Key.DirectionRight -> true
-                    Key.Enter, Key.DirectionCenter, Key.NumPadEnter -> { onClose(); true }
                     else -> false
                 }
             }

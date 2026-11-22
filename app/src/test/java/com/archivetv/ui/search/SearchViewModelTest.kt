@@ -32,7 +32,7 @@ class SearchViewModelTest {
             searchVideo = { _, _ -> page(ArchiveItem("film", "Film")) },
             searchAudio = { _, _ -> page(ArchiveItem("book", "Book", isAudio = true)) },
         )
-        vm.search("sherlock")
+        vm.search("mystery")
         val s = vm.state.value
         assertThat(s.watch.map { it.identifier }).containsExactly("film")
         assertThat(s.listen.map { it.identifier }).containsExactly("book")
@@ -45,7 +45,7 @@ class SearchViewModelTest {
             searchVideo = { _, _ -> page(ArchiveItem("film", "Film")) },
             searchAudio = { _, _ -> error("down") },
         )
-        vm.search("sherlock")
+        vm.search("mystery")
         val s = vm.state.value
         assertThat(s.watch).hasSize(1)
         assertThat(s.listen).isEmpty()
@@ -59,7 +59,7 @@ class SearchViewModelTest {
             searchLiveArtists = { error("down") },
             searchLiveConcerts = { error("down") },
         )
-        vm.search("sherlock")
+        vm.search("mystery")
         assertThat(vm.state.value.error).isEqualTo("Search failed. Try again.")
     }
 
@@ -97,7 +97,7 @@ class SearchViewModelTest {
             searchLiveArtists = { error("down") },
             searchLiveConcerts = { error("down") },
         )
-        vm.search("sherlock")
+        vm.search("mystery")
         val s = vm.state.value
         assertThat(s.watch).hasSize(1)
         assertThat(s.listen).hasSize(1)
@@ -125,7 +125,7 @@ class SearchViewModelTest {
             searchLiveArtists = { asked += "live"; emptyList() },
             scopes = listOf(SearchScope.All, tv, SearchScope.Everything),
         )
-        vm.onQueryChange("lucy")
+        vm.onQueryChange("comedy")
         vm.setScope(tv)
         assertThat(asked).containsExactly("video:tv")
         assertThat(vm.state.value.watch).hasSize(1)
@@ -185,5 +185,24 @@ class SearchViewModelTest {
         vm.search("zzzz")
         assertThat(vm.state.value.noResults).isTrue()
         assertThat(vm.state.value.error).isNull()
+    }
+
+    @Test fun shorteningTheQueryDropsTheRunningSearch() = runTest {
+        val slow = CompletableDeferred<BrowsePage>()
+        val vm = SearchViewModel(searchVideo = { _, _ -> slow.await() }, searchAudio = { _, _ -> page() })
+        vm.search("ab")
+        vm.onQueryChange("a")
+        slow.complete(page(ArchiveItem("late", "Late")))
+        assertThat(vm.state.value.watch).isEmpty()
+        assertThat(vm.state.value.loading).isFalse()
+    }
+
+    @Test fun clearingTheQueryClearsResults() = runTest {
+        val vm = SearchViewModel(searchVideo = { _, _ -> page(ArchiveItem("film", "Film")) }, searchAudio = { _, _ -> page() })
+        vm.search("film")
+        assertThat(vm.state.value.hasResults).isTrue()
+        vm.onQueryChange("")
+        assertThat(vm.state.value.hasResults).isFalse()
+        assertThat(vm.state.value.searched).isNull()
     }
 }

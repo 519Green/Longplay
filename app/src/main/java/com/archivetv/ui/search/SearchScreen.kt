@@ -85,10 +85,12 @@ fun SearchScreen(
         submits++
         viewModel.submit()
     }
-    LaunchedEffect(state.watch, state.listen, state.liveArtists, state.liveConcerts, submits) {
+    // Waits for the search to finish: while loading, the old results are
+    // still on screen and focusing them would lose focus when they go.
+    LaunchedEffect(state.watch, state.listen, state.liveArtists, state.liveConcerts, state.loading, submits) {
         val any = state.watch.isNotEmpty() || state.listen.isNotEmpty() ||
             state.liveArtists.isNotEmpty() || state.liveConcerts.isNotEmpty()
-        if (submits > focusedSubmit && any) {
+        if (submits > focusedSubmit && any && !state.loading) {
             focusedSubmit = submits
             // The first card may attach a frame or two after the results arrive
             // (and a tapped recent search has just left the screen with focus).

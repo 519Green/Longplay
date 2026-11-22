@@ -185,7 +185,7 @@ fun AppNavHost(
             if (pattern == Routes.SECTION) Routes.section(entry?.arguments?.getString("id").orEmpty()) else pattern
         }
         val returning = entry != null && !seenEntries.add(entry.id)
-        val fromPushed = left != null && left != previousRoute && destinations.none { it.route == left }
+        val fromPushed = left != null && destinations.none { it.route == left }
         if (entry != null && (left == Routes.NOW_PLAYING || (returning && fromPushed)) && previousRoute != Routes.NOW_PLAYING) {
             // RESUMED once the screen transition has finished.
             entry.lifecycle.currentStateFlow.first { it.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) }

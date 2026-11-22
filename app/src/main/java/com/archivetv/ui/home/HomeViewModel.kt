@@ -147,11 +147,19 @@ class HomeViewModel(
                     if (!done[i] || slides.size == HERO_SLIDES) break
                     checked[i]?.let(slides::add)
                 }
-                _state.update { it.copy(heroSlides = slides) }
+                // Keep the current slides until the new set has one, so the
+                // focused hero does not vanish while a retried row is checked.
+                if (slides.isNotEmpty() || done.all { it }) _state.update { it.copy(heroSlides = slides) }
             }
             candidates.forEachIndexed { i, item ->
                 launch {
-                    checked[i] = runCatching { heroCheck(item) }.getOrNull()
+                    checked[i] = try {
+                        heroCheck(item)
+                    } catch (e: kotlinx.coroutines.CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        null
+                    }
                     done[i] = true
                     publish()
                 }
