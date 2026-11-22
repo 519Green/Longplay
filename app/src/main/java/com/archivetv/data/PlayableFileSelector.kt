@@ -2,6 +2,7 @@ package com.archivetv.data
 
 import com.archivetv.data.api.MetadataFileDto
 import com.archivetv.domain.PlayableFile
+import com.archivetv.domain.SubtitleFile
 
 class PlayableFileSelector {
     private val byExtensionRank = listOf(".mp4", ".m4v", ".webm", ".ogv", ".mov", ".mkv")
@@ -32,13 +33,55 @@ class PlayableFileSelector {
 
     fun hasVideo(files: List<MetadataFileDto>): Boolean = files.any { extensionRank(it) >= 0 }
 
-    private fun selectVideo(identifier: String, files: List<MetadataFileDto>): List<PlayableFile> =
-        files
+    private fun selectVideo(identifier: String, files: List<MetadataFileDto>): List<PlayableFile> {
+        val videos = files
             .filter { extensionRank(it) >= 0 }
             .groupBy { groupKey(it) }
-            .map { (_, group) -> group.sortedWith(best).first() }
-            .sortedWith(compareBy(NaturalOrder) { it.name })
-            .map { f -> f.toPlayable(identifier, f.title) }
+            .map { (key, group) -> key to group.sortedWith(best).first() }
+            .sortedWith(compareBy(NaturalOrder) { it.second.name })
+        val captions = captionFiles(identifier, files)
+        val byVideo = captions.groupBy { (stems, _) ->
+            videos.firstOrNull { (key, f) -> stems.any { it == key || it == stem(f.name) } }?.first
+        }
+        return videos.map { (key, f) ->
+            // An item with one video owns every caption file, whatever its name.
+            val own = if (videos.size == 1) captions else byVideo[key].orEmpty()
+            f.toPlayable(identifier, f.title).copy(subtitles = own.map { it.second })
+        }
+    }
+
+    /**
+     * SubRip and WebVTT files, each with the video stems its name could
+     * belong to (with and without a language tag). When one caption exists in
+     * both formats, SubRip wins.
+     */
+    private fun captionFiles(identifier: String, files: List<MetadataFileDto>): List<Pair<List<String>, SubtitleFile>> =
+        files.mapNotNull { f ->
+            val lower = f.name.lowercase()
+            val vtt = lower.endsWith(".vtt") || f.format.equals("Web Video Text Tracks", ignoreCase = true)
+            val srt = lower.endsWith(".srt") || f.format.equals("SubRip", ignoreCase = true)
+            if (!vtt && !srt) return@mapNotNull null
+            var base = lower.substringBeforeLast('.')
+            val auto = base.endsWith(".asr")
+            base = base.removeSuffix(".asr")
+            val tag = languageTag.find(base)
+            // Only a tag Locale knows ("en", "pt-br"), not a word like ".dvd".
+            val language = tag?.groupValues?.get(1)?.takeIf { t ->
+                java.util.Locale.forLanguageTag(t).getDisplayLanguage(java.util.Locale.ENGLISH)
+                    .let { it.isNotBlank() && !it.equals(t.substringBefore('-'), ignoreCase = true) }
+            }
+            val stems = listOfNotNull(base, tag?.let { base.substring(0, it.range.first) })
+            val caption = SubtitleFile(identifier, f.name, language, auto, webVtt = !srt)
+            Triple(stems, caption, srt)
+        }
+            .groupBy { (stems, c, _) -> Triple(stems.last(), c.language, c.auto) }
+            .map { (_, same) -> same.maxBy { if (it.third) 1 else 0 } }
+            .map { (stems, c, _) -> stems to c }
+
+    private val languageTag = Regex("""\.([a-z]{2,3}(?:-[a-z0-9]{2,8})?)$""")
+
+    private fun stem(name: String) =
+        name.substringBeforeLast('.').removeSuffix("_512kb").lowercase()
 
     private val audioExtensions = listOf(".mp3", ".ogg", ".m4a", ".flac")
     private val audioFormatRank = listOf("vbr mp3", "128kbps mp3", "64kbps mp3")

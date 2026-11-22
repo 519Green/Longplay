@@ -232,4 +232,58 @@ class PlayableFileSelectorTest {
         )
         assertThat(sel.selectAll("ep", files).map { it.fileName }).containsExactly("ep.mp3")
     }
+
+    @Test fun singleVideoOwnsItsSpeechRecognisedCaptions() {
+        val files = listOf(
+            MetadataFileDto(name = "film.mp4", format = "h.264", source = "derivative", original = "film.mpeg"),
+            MetadataFileDto(name = "film.asr.srt", format = "SubRip"),
+        )
+        val sub = PlayableFileSelector().selectAll("x", files).single().subtitles.single()
+        assertThat(sub.fileName).isEqualTo("film.asr.srt")
+        assertThat(sub.auto).isTrue()
+        assertThat(sub.language).isNull()
+        assertThat(sub.webVtt).isFalse()
+        assertThat(sub.label).isEqualTo("Captions (auto)")
+        assertThat(sub.url).isEqualTo("https://archive.org/download/x/film.asr.srt")
+    }
+
+    @Test fun languageTagsBecomeLabelsAndSubRipBeatsWebVttForTheSameCaption() {
+        val files = listOf(
+            MetadataFileDto(name = "Talk.mp4", format = "h.264"),
+            MetadataFileDto(name = "Talk.en.asr.srt", format = "SubRip"),
+            MetadataFileDto(name = "Talk.en.asr.vtt", format = "Web Video Text Tracks"),
+            MetadataFileDto(name = "Talk.es.vtt", format = "Web Video Text Tracks"),
+        )
+        val subs = PlayableFileSelector().selectAll("x", files).single().subtitles
+        assertThat(subs.map { it.fileName }).containsExactly("Talk.en.asr.srt", "Talk.es.vtt")
+        assertThat(subs.map { it.label }).containsExactly("English (auto)", "Spanish")
+        assertThat(subs.first { it.language == "es" }.webVtt).isTrue()
+    }
+
+    @Test fun episodesOnlyGetTheirOwnCaptions() {
+        val files = listOf(
+            MetadataFileDto(name = "Show_Ep1.mp4", format = "h.264"),
+            MetadataFileDto(name = "Show_Ep2.mp4", format = "h.264"),
+            MetadataFileDto(name = "Show_Ep2_512kb.mp4", format = "512Kb MPEG4"),
+            MetadataFileDto(name = "Show_Ep2.asr.srt", format = "SubRip"),
+        )
+        val (ep1, ep2) = PlayableFileSelector().selectAll("x", files)
+        assertThat(ep1.subtitles).isEmpty()
+        assertThat(ep2.subtitles.map { it.fileName }).containsExactly("Show_Ep2.asr.srt")
+    }
+
+    @Test fun anUnknownSuffixIsNotALanguage() {
+        val files = listOf(
+            MetadataFileDto(name = "film.mp4", format = "h.264"),
+            MetadataFileDto(name = "film.dvd.srt", format = "SubRip"),
+        )
+        val sub = PlayableFileSelector().selectAll("x", files).single().subtitles.single()
+        assertThat(sub.language).isNull()
+        assertThat(sub.label).isEqualTo("Captions")
+    }
+
+    @Test fun noCaptionFilesMeansNoSubtitles() {
+        val files = listOf(MetadataFileDto(name = "film.mp4", format = "h.264"))
+        assertThat(PlayableFileSelector().selectAll("x", files).single().subtitles).isEmpty()
+    }
 }
