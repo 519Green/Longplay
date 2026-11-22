@@ -7,6 +7,7 @@ import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -55,6 +56,7 @@ fun DetailScreen(
     identifier: String,
     onPlay: (String, Int?) -> Unit,
     onPlayAudio: (String, Int?) -> Unit = onPlay,
+    onOpenRecording: (String) -> Unit = {},
     viewModel: DetailViewModel = detailViewModel(),
 ) {
     LaunchedEffect(identifier) { viewModel.load(identifier) }
@@ -129,6 +131,26 @@ fun DetailScreen(
                             )
                         }
                     }
+                }
+                if (state.otherRecordings.isNotEmpty()) {
+                    item(key = "other-title") {
+                        Text(
+                            "Other recordings (${state.otherRecordings.size})",
+                            style = MaterialTheme.typography.titleMedium,
+                            modifier = Modifier.padding(start = 48.dp, top = 16.dp, bottom = 8.dp),
+                        )
+                    }
+                    items(state.otherRecordings, key = { "other-" + it.identifier }) { r ->
+                        ListItem(
+                            selected = false,
+                            onClick = { onOpenRecording(r.identifier) },
+                            headlineContent = { Text(recordingHeadline(r), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                            supportingContent = recordingRating(r)?.let { { Text(it) } },
+                            modifier = Modifier.padding(horizontal = 48.dp),
+                        )
+                    }
+                }
+                if (multi || state.otherRecordings.isNotEmpty()) {
                     item(key = "bottom") { Spacer(Modifier.height(27.dp)) }
                 }
             }
@@ -208,7 +230,7 @@ private fun LazyItemScope.Header(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            item.year?.let {
+            (state.live?.let(::concertLine) ?: item.year)?.let {
                 Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             item.description?.let {
@@ -365,6 +387,7 @@ fun detailViewModel(): DetailViewModel {
             DetailViewModel(
                 app.container.archiveRepository,
                 app.container.libraryRepository,
+                app.container.liveMusic::recordings,
             ) as T
     })
 }

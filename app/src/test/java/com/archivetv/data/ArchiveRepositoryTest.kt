@@ -2,6 +2,7 @@ package com.archivetv.data
 
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.domain.ItemKind
+import com.archivetv.domain.LiveInfo
 import com.google.common.truth.Truth.assertThat
 import com.archivetv.data.api.archiveMoshi
 import kotlinx.coroutines.test.runTest
@@ -175,5 +176,29 @@ class ArchiveRepositoryTest {
         val items = repo.search("thundarr", limit = 40)
         assertThat(items.map { it.isCommunity }).containsExactly(true, false).inOrder()
         assertThat(items.none { it.isAudio }).isTrue()
+    }
+
+    @Test fun detailOfLmaRecordingHasLiveInfo() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Grateful Dead Live at Barton Hall on 1977-05-08","mediatype":"etree",""" +
+                """"collection":["GratefulDead","etree","stream_only"],"date":"1977-05-08","venue":"Barton Hall","coverage":"Ithaca, NY"},""" +
+                """"files":[{"name":"t1.mp3","format":"VBR MP3","title":"Minglewood Blues","track":"1"}]}"""
+        ))
+        val d = repo.detail("gd77-05-08")
+        assertThat(d.live).isEqualTo(LiveInfo("GratefulDead", "1977-05-08", "", "Barton Hall", "Ithaca, NY"))
+    }
+
+    @Test fun detailWithoutArtistCollectionHasNoLiveInfo() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Orphan","mediatype":"etree","collection":["etree","stream_only"],"date":"1977-05-08"},"files":[]}"""
+        ))
+        assertThat(repo.detail("orphan").live).isNull()
+    }
+
+    @Test fun detailOfNonLmaAudioHasNoLiveInfo() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Holmes","mediatype":"audio","collection":["librivoxaudio"],"date":"2008-01-01"},"files":[]}"""
+        ))
+        assertThat(repo.detail("holmes").live).isNull()
     }
 }

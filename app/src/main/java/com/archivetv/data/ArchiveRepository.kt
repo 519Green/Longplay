@@ -4,6 +4,10 @@ import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.SearchDocDto
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.ItemKind
+import com.archivetv.domain.LiveInfo
+import com.archivetv.domain.artistIdOf
+import com.archivetv.domain.dateOf
+import com.archivetv.domain.showPart
 import com.archivetv.domain.itemKind
 import com.archivetv.domain.PlayableFile
 
@@ -13,6 +17,7 @@ data class ItemDetail(
     val files: List<PlayableFile>,
     val kind: ItemKind = ItemKind.VIDEO,
     val isLibriVox: Boolean = false,
+    val live: LiveInfo? = null,
 )
 
 data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
@@ -85,7 +90,15 @@ class ArchiveRepository(
             files = fileSelector.selectAll(identifier, dto.files),
             kind = itemKind(collections, fileSelector.hasVideo(dto.files)),
             isLibriVox = "librivoxaudio" in collections,
+            live = if (meta?.mediatype == "etree") liveInfo(collections, meta, item.title) else null,
         )
+    }
+
+    private fun liveInfo(collections: List<String>, meta: com.archivetv.data.api.MetadataBodyDto, title: String): LiveInfo? {
+        val artistId = artistIdOf(collections) ?: return null
+        val date = dateOf(meta.date.firstOrNull()) ?: return null
+        fun first(values: List<String>) = values.map(HtmlText::toPlain).firstOrNull { it.isNotBlank() }?.trim()
+        return LiveInfo(artistId, date, showPart(title), first(meta.venue), first(meta.coverage))
     }
 
     private fun SearchDocDto.toItem() = ArchiveItem(

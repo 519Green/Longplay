@@ -318,6 +318,7 @@ fun AppNavHost(
                     identifier = entry.arguments!!.getString("id")!!,
                     onPlay = { id, index -> nav.navigate(Routes.player(id, index)) },
                     onPlayAudio = ::playAudio,
+                    onOpenRecording = { nav.navigate(Routes.detail(it)) },
                 )
             }
             composable(

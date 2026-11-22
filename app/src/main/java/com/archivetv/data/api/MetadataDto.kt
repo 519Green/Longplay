@@ -15,6 +15,10 @@ data class MetadataBodyDto(
     @StringOrList val year: List<String> = emptyList(),
     @StringOrList val collection: List<String> = emptyList(),
     val mediatype: String? = null,
+    /** Live Music Archive: concert date ("1977-05-08"), venue and city. */
+    @StringOrList val date: List<String> = emptyList(),
+    @StringOrList val venue: List<String> = emptyList(),
+    @StringOrList val coverage: List<String> = emptyList(),
 )
 
 @JsonClass(generateAdapter = true)

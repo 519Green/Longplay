@@ -10,6 +10,8 @@ import com.archivetv.data.episodeLabels
 import com.archivetv.data.startPoint
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.ItemKind
+import com.archivetv.domain.LiveInfo
+import com.archivetv.domain.Recording
 import com.archivetv.domain.PlayableFile
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,6 +28,10 @@ data class DetailUiState(
     val error: String? = null,
     val kind: ItemKind = ItemKind.VIDEO,
     val isLibriVox: Boolean = false,
+    /** Set for Live Music Archive recordings. */
+    val live: LiveInfo? = null,
+    /** The concert's other recordings, best first (LMA only). */
+    val otherRecordings: List<Recording> = emptyList(),
 ) {
     val isAudio: Boolean get() = kind != ItemKind.VIDEO
     val playable: Boolean get() = files.isNotEmpty()
@@ -44,9 +50,32 @@ fun listHeader(kind: ItemKind, isLibriVox: Boolean, count: Int): String {
     return "$noun · $count"
 }
 
+/** "1977-05-08 · Barton Hall · Ithaca, NY" under an LMA recording's title; blank parts skipped. */
+fun concertLine(live: LiveInfo): String {
+    val part = when (live.showPart) {
+        "early" -> " (Early Show)"
+        "late" -> " (Late Show)"
+        else -> ""
+    }
+    return (listOf(live.date + part) + listOfNotNull(live.venue, live.city).filter { it.isNotBlank() })
+        .joinToString(" · ")
+}
+
+/** An Other recordings row: the taper's source notes, first 60 characters. */
+fun recordingHeadline(r: Recording): String =
+    r.source?.trim()?.takeIf { it.isNotEmpty() }?.take(60) ?: "Recording"
+
+/** "★ 4.9 · 29 reviews"; null when unrated. */
+fun recordingRating(r: Recording): String? {
+    val rating = r.rating?.takeIf { it > 0.0 } ?: return null
+    val reviews = if (r.reviews == 1) "1 review" else "${r.reviews} reviews"
+    return "★ " + String.format(java.util.Locale.US, "%.1f", rating) + " · " + reviews
+}
+
 class DetailViewModel(
     private val archive: ArchiveRepository,
     private val library: LibraryRepository,
+    private val recordings: suspend (artistId: String, date: String, showPart: String) -> List<Recording> = { _, _, _ -> emptyList() },
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailUiState())
     val state: StateFlow<DetailUiState> = _state
@@ -63,7 +92,15 @@ class DetailViewModel(
                         isFavorite = library.isFavorite(identifier),
                         kind = d.kind,
                         isLibriVox = d.isLibriVox,
+                        live = d.live,
                     )
+                    d.live?.let { live ->
+                        viewModelScope.launch {
+                            runCatching { recordings(live.artistId, live.date, live.showPart) }.onSuccess { list ->
+                                _state.update { s -> s.copy(otherRecordings = list.filter { it.identifier != identifier }) }
+                            }
+                        }
+                    }
                     progressJob?.cancel()
                     progressJob = viewModelScope.launch {
                         library.observeProgress(identifier, d.files.map { it.fileName })

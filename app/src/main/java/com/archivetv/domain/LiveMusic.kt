@@ -34,6 +34,9 @@ data class Concert(
 
 data class YearCount(val year: Int, val concerts: Int)
 
+/** Concert facts of an LMA recording's item page; null for anything else. */
+data class LiveInfo(val artistId: String, val date: String, val showPart: String, val venue: String?, val city: String?)
+
 private val isoDate = Regex("""^\d{4}-\d{2}-\d{2}""")
 
 /** The date part of an IA date, never time-zone converted ("1977-05-26T00:00:00Z" -> "1977-05-26"). */
