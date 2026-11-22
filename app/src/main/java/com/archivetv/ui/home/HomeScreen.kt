@@ -76,18 +76,9 @@ import com.archivetv.ui.common.rowPadding
 import com.archivetv.ui.components.MediaCard
 import com.archivetv.ui.common.ContentRow
 import com.archivetv.ui.common.TileRow
+import com.archivetv.ui.common.browseTiles
 import com.archivetv.ui.common.contentRows
 import com.archivetv.ui.theme.Dimens
-
-/** Category groups surfaced as tiles on Home (Jellyfin-style "My Media" row). */
-private val homeTiles = listOf(
-    "movie-genres" to "Movie Genres",
-    "movie-decades" to "Movies by Decade",
-    "tv-decades" to "TV by Decade",
-    "tv-genres" to "TV Genres",
-    "tv-shows" to "TV Shows",
-    "edu-studios" to "Educational Studios",
-)
 
 @Composable
 fun HomeScreen(
@@ -102,10 +93,7 @@ fun HomeScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val app = LocalContext.current.applicationContext as ArchiveTvApp
-    val tiles = remember {
-        homeTiles.filter { app.container.catalog.node(it.first) != null }
-            .map { (id, label) -> label to { onOpenGroup(id) } }
-    }
+    val tiles = remember { browseTiles(app.container.catalog, onOpenGroup) }
     HomeContent(
         continueWatching = state.continueWatching,
         favorites = state.favorites,

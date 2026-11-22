@@ -1,6 +1,8 @@
 package com.archivetv.data
 
 import com.archivetv.domain.CategoryQuery
+import com.archivetv.domain.ScopeKind
+import com.archivetv.domain.SearchScope
 
 class SearchQueryBuilder {
     // IA has no "tv" mediatype; television items are mediatype:movies.
@@ -46,6 +48,23 @@ class SearchQueryBuilder {
         if (terms.isEmpty()) return ""
         return "((${anyOf(curated)} AND (title:($terms) OR subject:($terms) OR creator:($terms))) " +
             "OR (${anyOf(community)} AND title:($terms))) AND $video"
+    }
+
+    /**
+     * The query for one Search chip; [video] picks the Watch or Listen half.
+     * Empty when [text] has no searchable words.
+     */
+    fun scoped(scope: SearchScope, text: String, video: Boolean): String {
+        val terms = terms(text)
+        if (terms.isEmpty()) return ""
+        return when (scope.kind) {
+            ScopeKind.ALL -> if (video) userSearch(text) else audioSearch(text)
+            ScopeKind.AUDIO -> audioSearch(text)
+            ScopeKind.VIDEO ->
+                "${anyOf(scope.collections)} AND (title:($terms) OR subject:($terms) OR creator:($terms)) AND ${this.video}"
+            // Titles only: subjects and descriptions across all of IA are uploader free text.
+            ScopeKind.EVERYTHING -> "title:($terms) AND mediatype:" + if (video) "movies" else "audio"
+        }
     }
 
     /**

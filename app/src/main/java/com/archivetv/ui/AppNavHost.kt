@@ -340,6 +340,7 @@ fun AppNavHost(
                 SearchScreen(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
                     onOpenArtist = { nav.navigate(Routes.liveArtist(it)) },
+                    onOpenGroup = { nav.navigate(Routes.tiles(it)) },
                     voicePending = voicePending,
                     onVoiceStarted = { voicePending = false },
                 )

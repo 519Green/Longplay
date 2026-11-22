@@ -61,6 +61,13 @@ class ArchiveRepository(
         ).response.docs.map { it.toItem() }
     }
 
+    /** One Search chip's Watch ([video]) or Listen results, most downloaded first, with the total. */
+    suspend fun searchScoped(scope: com.archivetv.domain.SearchScope, text: String, video: Boolean, limit: Int = 40): BrowsePage {
+        val query = queryBuilder.scoped(scope, text, video)
+        if (query.isEmpty()) return BrowsePage(emptyList(), 0)
+        return browse(query, BrowseSort.POPULAR, page = 1, rows = limit)
+    }
+
     suspend fun searchAudio(text: String, limit: Int): List<ArchiveItem> {
         val query = queryBuilder.audioSearch(text)
         if (query.isEmpty()) return emptyList()

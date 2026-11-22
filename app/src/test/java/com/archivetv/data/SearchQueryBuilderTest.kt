@@ -140,4 +140,24 @@ class SearchQueryBuilderTest {
     @Test fun audioSearchEmptyForSyntaxOnly() {
         assertThat(b.audioSearch("\"()\"")).isEmpty()
     }
+
+    @Test fun scopedVideoSectionUsesItsCollections() {
+        val tv = com.archivetv.domain.SearchScope("tv", "TV", com.archivetv.domain.ScopeKind.VIDEO, listOf("classic_tv", "classic_tv_1950s"))
+        assertThat(b.scoped(tv, "lucy", video = true)).isEqualTo(
+            "collection:(classic_tv OR classic_tv_1950s) AND (title:(lucy) OR subject:(lucy) OR creator:(lucy)) AND mediatype:movies"
+        )
+    }
+
+    @Test fun scopedEverythingIsTitleOnly() {
+        val e = com.archivetv.domain.SearchScope.Everything
+        assertThat(b.scoped(e, "night", video = true)).isEqualTo("title:(night) AND mediatype:movies")
+        assertThat(b.scoped(e, "night", video = false)).isEqualTo("title:(night) AND mediatype:audio")
+        assertThat(b.scoped(e, "\"()\"", video = true)).isEmpty()
+    }
+
+    @Test fun scopedAllKeepsTheCuratedQueries() {
+        val all = com.archivetv.domain.SearchScope.All
+        assertThat(b.scoped(all, "night", video = true)).isEqualTo(b.userSearch("night"))
+        assertThat(b.scoped(all, "night", video = false)).isEqualTo(b.audioSearch("night"))
+    }
 }
