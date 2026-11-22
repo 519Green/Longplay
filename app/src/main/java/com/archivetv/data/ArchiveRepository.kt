@@ -31,6 +31,7 @@ data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
 
 enum class BrowseSort(val label: String, val param: String) {
     POPULAR("Popular", "downloads desc"),
+    MOST_REVIEWED("Most reviewed", "num_reviews desc"),
     TRENDING("Trending", "week desc"),
     RECENT("Recently added", "addeddate desc"),
     OLDEST("Oldest first", "year asc"),

@@ -31,6 +31,12 @@ class ArchiveRepositoryTest {
 
     @After fun tearDown() = server.shutdown()
 
+    @Test fun mostReviewedSortsByReviewCount() = runTest {
+        server.enqueue(MockResponse().setBody("""{"response":{"numFound":0,"docs":[]}}"""))
+        repo.browse("collection:(x)", BrowseSort.MOST_REVIEWED, page = 1, rows = 10)
+        assertThat(server.takeRequest().requestUrl!!.queryParameter("sort[]")).isEqualTo("num_reviews desc")
+    }
+
     @Test fun browseReturnsPageAndTotalAndSendsSortAndPage() = runTest {
         server.enqueue(MockResponse().setBody(
             """{"response":{"numFound":57,"docs":[{"identifier":"id1","title":"Film One","year":"1950"}]}}"""
