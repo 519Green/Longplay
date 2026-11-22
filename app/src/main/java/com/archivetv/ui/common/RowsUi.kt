@@ -121,12 +121,12 @@ fun FailedRow(title: String, onRetry: () -> Unit) {
 
 /** A row of category tiles (e.g. By Genre, By Decade, Shows). */
 @Composable
-fun TileRow(title: String?, tiles: List<Pair<String, () -> Unit>>) {
+fun TileRow(title: String?, tiles: List<Pair<String, () -> Unit>>, start: Dp = Dimens.ContentStart) {
     Column {
-        title?.let { RowHeader(it) }
+        title?.let { RowHeader(it, start) }
         LazyRow(
             modifier = Modifier.focusRestorer(),
-            contentPadding = rowPadding(),
+            contentPadding = rowPadding(start),
             horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
         ) {
             items(tiles, key = { it.first }) { (label, onClick) -> LabelCard(label, onClick = onClick) }

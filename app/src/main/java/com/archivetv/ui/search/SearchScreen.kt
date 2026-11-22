@@ -5,7 +5,13 @@ import android.content.Intent
 import android.speech.RecognizerIntent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.tv.material3.MaterialTheme
@@ -136,24 +142,64 @@ fun SearchScreen(
             .padding(start = Dimens.ContentStart, top = Dimens.OverscanVertical),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        OutlinedTextField(
-            value = state.query,
-            onValueChange = viewModel::onQueryChange,
-            label = { androidx.compose.material3.Text("Search films, TV, books, radio and music") },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { submit() }),
-            // A focused text field keeps D-pad keys for its cursor, which traps
-            // remote users in it. Up/Down always leave the field.
-            modifier = Modifier.onPreviewKeyEvent { e ->
-                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
-                when (e.key) {
-                    Key.DirectionDown -> focusManager.moveFocus(FocusDirection.Down)
-                    Key.DirectionUp -> focusManager.moveFocus(FocusDirection.Up)
-                    else -> false
+        // Focus alone must not open the on-screen keyboard: arriving on Search
+        // would cover the screen with it. The box around the field takes focus;
+        // OK on it (on key-up, so the IME never sees the release) starts editing.
+        var editing by remember { mutableStateOf(false) }
+        var boxFocused by remember { mutableStateOf(false) }
+        val fieldFocus = remember { FocusRequester() }
+        LaunchedEffect(editing) {
+            if (editing) {
+                repeat(10) {
+                    if (runCatching { fieldFocus.requestFocus() }.isSuccess) return@LaunchedEffect
+                    kotlinx.coroutines.delay(30)
                 }
-            },
-        )
+                editing = false
+            }
+        }
+        Box(
+            Modifier
+                .onFocusChanged { boxFocused = it.isFocused }
+                .onPreviewKeyEvent { e ->
+                    if (editing || e.key !in okKeys) return@onPreviewKeyEvent false
+                    if (e.type == KeyEventType.KeyUp) editing = true
+                    true
+                }
+                .border(
+                    2.dp,
+                    if (boxFocused) MaterialTheme.colorScheme.onSurface else Color.Transparent,
+                    RoundedCornerShape(8.dp),
+                )
+                .focusable(),
+        ) {
+            OutlinedTextField(
+                value = state.query,
+                onValueChange = viewModel::onQueryChange,
+                label = { androidx.compose.material3.Text("Search films, TV, books, radio and music") },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { submit() }),
+                // A focused text field keeps D-pad keys for its cursor, which traps
+                // remote users in it. Up/Down always leave the field.
+                modifier = Modifier
+                    .focusRequester(fieldFocus)
+                    .focusProperties { canFocus = editing }
+                    .onFocusChanged {
+                        if (!it.isFocused && editing) {
+                            editing = false
+                            keyboard?.hide()
+                        }
+                    }
+                    .onPreviewKeyEvent { e ->
+                        if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                        when (e.key) {
+                            Key.DirectionDown -> focusManager.moveFocus(FocusDirection.Down)
+                            Key.DirectionUp -> focusManager.moveFocus(FocusDirection.Up)
+                            else -> false
+                        }
+                    },
+            )
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Button(onClick = { submit() }) { Text("Search") }
             Button(onClick = { startVoiceSearch() }, modifier = Modifier.focusRequester(voiceFocus)) {
@@ -210,7 +256,8 @@ fun SearchScreen(
                 }
             }
             if (tiles.isNotEmpty()) {
-                Box(Modifier.padding(top = 8.dp)) { TileRow("Browse", tiles) }
+                // The screen column already applies ContentStart.
+                Box(Modifier.padding(top = 8.dp)) { TileRow("Browse", tiles, start = 0.dp) }
             }
             return@Column
         }
@@ -290,6 +337,8 @@ fun SearchScreen(
         }
     }
 }
+
+private val okKeys = setOf(Key.DirectionCenter, Key.Enter, Key.NumPadEnter)
 
 /** "Watch · 1,234" when every match is shown, else "Watch · top 40 of 1,234". */
 internal fun sectionHeader(label: String, shown: Int, total: Int): String {
