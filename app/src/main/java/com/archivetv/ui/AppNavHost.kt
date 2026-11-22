@@ -29,6 +29,11 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -54,6 +59,7 @@ import com.archivetv.ui.section.TilesScreen
 import com.archivetv.ui.theme.SectionIcons
 import com.archivetv.ui.theme.Dimens
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -116,13 +122,13 @@ fun AppNavHost(
     LaunchedEffect(Unit) {
         nowPlayingRequests.collect { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } }
     }
-    // The mini bar may take focus only after the screen below it has had focus,
-    // so it never steals a screen's initial focus.
-    var barFocusable by remember { mutableStateOf(false) }
     val backStack by nav.currentBackStackEntryAsState()
-    // Again on every screen change: focus left behind by a closed screen must land
-    // in the new screen, not on the bar.
-    LaunchedEffect(backStack?.id) { barFocusable = false }
+    // The mini bar takes focus only when the user presses Up from the screen
+    // below it (or while it already has focus), so it never takes a screen's
+    // initial focus nor the focus a closed screen leaves behind. Focus search
+    // reads canFocus while the Up key is being handled.
+    var upHeld by remember { mutableStateOf(false) }
+    var barHasFocus by remember { mutableStateOf(false) }
     // Sections share one route pattern; key them by id so the drawer can tell them apart.
     val route = backStack?.destination?.route.let { pattern ->
         if (pattern == Routes.SECTION) Routes.section(backStack?.arguments?.getString("id").orEmpty()) else pattern
@@ -146,6 +152,21 @@ fun AppNavHost(
     val itemFocus = remember { destinations.associate { it.route to FocusRequester() } }
     var drawerHasFocus by remember { mutableStateOf(false) }
     val contentFocus = remember { FocusRequester() }
+
+    // Closing Now Playing leaves nothing focused (the bar refuses focus it was
+    // not sent to); give focus back to the screen below, whose restorer picks
+    // the item it last had.
+    var previousRoute by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(backStack?.id) {
+        val wasNowPlaying = previousRoute == Routes.NOW_PLAYING
+        previousRoute = backStack?.destination?.route
+        val entry = backStack
+        if (wasNowPlaying && previousRoute != Routes.NOW_PLAYING && entry != null) {
+            // RESUMED once the screen transition has finished.
+            entry.lifecycle.currentStateFlow.first { it.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) }
+            runCatching { contentFocus.requestFocus() }
+        }
+    }
 
     // Android TV "left navigation" pattern: Back from Home content moves focus
     // to the drawer; Back again (drawer focused) falls through and exits.
@@ -203,18 +224,22 @@ fun AppNavHost(
                 onOpen = { nav.navigate(Routes.NOW_PLAYING) { launchSingleTop = true } },
                 modifier = Modifier
                     .padding(start = Dimens.ContentStart, end = Dimens.OverscanHorizontal, top = 8.dp)
-                    .focusProperties { canFocus = barFocusable },
+                    .onFocusChanged { barHasFocus = it.hasFocus }
+                    .focusProperties { canFocus = upHeld || barHasFocus },
             )
         }
         Box(
             Modifier
                 .weight(1f)
                 .fillMaxWidth()
-                .onFocusChanged { if (it.hasFocus) barFocusable = true }
                 // The drawer's Right and focus restoration target the screens only,
                 // so entering content never lands on the mini bar above them.
                 .focusRequester(contentFocus)
                 .focusRestorer()
+                .onPreviewKeyEvent { e ->
+                    if (e.key == Key.DirectionUp) upHeld = e.type == KeyEventType.KeyDown
+                    false
+                }
         ) {
         NavHost(nav, startDestination = Routes.HOME) {
             composable(Routes.HOME) {

@@ -114,4 +114,11 @@ class QueueOpsTest {
         assertThat(QueueOps.trimHistory(20)).isNull()
         assertThat(QueueOps.trimHistory(10)).isNull()
     }
+
+    @Test fun playAllTakesWholeAlbumsButOneFileOfACompilation() {
+        assertThat(QueueOps.forPlayAll(e("lp", 12))).isEqualTo(e("lp", 12))
+        assertThat(QueueOps.forPlayAll(e("side", 2))).isEqualTo(e("side", 2))
+        assertThat(QueueOps.forPlayAll(e("vdisc", 300))).isEqualTo(e("vdisc", 300).take(1))
+        assertThat(QueueOps.forPlayAll(e("edge", 30))).hasSize(30)
+    }
 }

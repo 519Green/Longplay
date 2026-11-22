@@ -84,7 +84,8 @@ class PlaybackService : MediaSessionService() {
             controller: MediaSession.ControllerInfo,
             mediaItems: MutableList<MediaItem>,
         ): ListenableFuture<MutableList<MediaItem>> =
-            Futures.immediateFuture(mediaItems.map { it.withPlaybackUri() }.toMutableList())
+            playableItems(mediaItems)?.let { Futures.immediateFuture(it.toMutableList()) }
+                ?: Futures.immediateFailedFuture(UnsupportedOperationException("item has no playable URI"))
     }
 
     private val listener = object : Player.Listener {
@@ -92,7 +93,7 @@ class PlaybackService : MediaSessionService() {
             val previous = lastIndex
             lastIndex = player.currentMediaItemIndex
             if (reason == Player.MEDIA_ITEM_TRANSITION_REASON_AUTO && previous != C.INDEX_UNSET) saveFinished(previous)
-            schedulePersist()
+            persistState()
         }
 
         override fun onTimelineChanged(timeline: Timeline, reason: Int) {
@@ -108,12 +109,12 @@ class PlaybackService : MediaSessionService() {
                     while (isActive) {
                         delay(10_000)
                         saveCurrent()
-                        persistNow()
+                        persistState()
                     }
                 }
             } else {
                 saveCurrent()
-                schedulePersist()
+                persistState()
                 // Paused for a long time: let the service go; the queue stays in Room.
                 idleJob = scope.launch {
                     delay(30 * 60_000L)
@@ -131,12 +132,17 @@ class PlaybackService : MediaSessionService() {
             }
         }
 
-        /** A file that will not play (often a taken-down upload): skip it rather than stall. */
+        /**
+         * A file that will not play (often a taken-down upload): skip it rather
+         * than stall, keeping play/pause as it was. Other errors (network) stay
+         * on the file; Play prepares it again.
+         */
         override fun onPlayerError(error: PlaybackException) {
-            if (player.hasNextMediaItem()) {
+            if (skipsToNextFile(error.errorCode) && player.hasNextMediaItem()) {
+                val wasPlaying = player.playWhenReady
                 player.seekToNextMediaItem()
                 player.prepare()
-                player.play()
+                player.playWhenReady = wasPlaying
             } else {
                 player.pause()
             }
@@ -197,14 +203,21 @@ class PlaybackService : MediaSessionService() {
         scope.launch(Dispatchers.IO + NonCancellable) { container.queueDao.replaceAll(entries, state) }
     }
 
+    /** Where the queue is (index and position) without rewriting its rows. */
+    private fun persistState() {
+        val state = snapshotState()
+        scope.launch(Dispatchers.IO + NonCancellable) { container.queueDao.saveState(state) }
+    }
+
+    private fun snapshotState() = QueueStateEntity(
+        currentIndex = if (player.mediaItemCount > 0) player.currentMediaItemIndex else -1,
+        positionMs = player.currentPosition,
+    )
+
     private fun snapshot() =
         (0 until player.mediaItemCount)
             .mapNotNull { player.getMediaItemAt(it).toQueueEntry() }
-            .mapIndexed { i, e -> e.toEntity(i) } to
-            QueueStateEntity(
-                currentIndex = if (player.mediaItemCount > 0) player.currentMediaItemIndex else -1,
-                positionMs = player.currentPosition,
-            )
+            .mapIndexed { i, e -> e.toEntity(i) } to snapshotState()
 
     override fun onTaskRemoved(rootIntent: Intent?) {
         if (!player.playWhenReady || player.mediaItemCount == 0) stopSelf()

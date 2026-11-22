@@ -213,7 +213,8 @@ class AudioConnection(
         }
     }
 
-    private suspend fun allFiles(identifier: String): List<QueueEntry>? = entriesOf(identifier)
+    private suspend fun allFiles(identifier: String): List<QueueEntry>? =
+        entriesOf(identifier)?.let(QueueOps::forPlayAll)
 
     /** Entries, the index to start at, and the position in that file. */
     private suspend fun filesFrom(identifier: String, fileIndex: Int?): Triple<List<QueueEntry>, Int, Long>? {

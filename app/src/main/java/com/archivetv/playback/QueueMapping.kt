@@ -4,6 +4,7 @@ import android.net.Uri
 import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.PlaybackException
 import com.archivetv.data.db.QueueEntryEntity
 import com.archivetv.domain.ItemKind
 import com.archivetv.domain.PlayableFile
@@ -68,6 +69,33 @@ fun MediaItem.toQueueEntry(): QueueEntry? {
 /** Controllers strip the URI when sending items to the session; restore it from the extras. */
 fun MediaItem.withPlaybackUri(): MediaItem =
     if (localConfiguration != null) this else toQueueEntry()?.toMediaItem() ?: this
+
+/**
+ * Items a controller asked to add, with URIs restored; null when any item
+ * still has none (an external controller's search or media id request), so
+ * the request fails instead of crashing the player.
+ */
+fun playableItems(items: List<MediaItem>): List<MediaItem>? =
+    items.map { it.withPlaybackUri() }.takeIf { list -> list.all { it.localConfiguration != null } }
+
+/**
+ * True for errors that belong to the file (gone, bad response, undecodable),
+ * where skipping to the next file is right. Network trouble is not one of
+ * them: skipping would run through the whole queue while offline.
+ */
+fun skipsToNextFile(errorCode: Int): Boolean = when (errorCode) {
+    PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+    PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+    PlaybackException.ERROR_CODE_IO_INVALID_HTTP_CONTENT_TYPE,
+    PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+    PlaybackException.ERROR_CODE_PARSING_MANIFEST_MALFORMED,
+    PlaybackException.ERROR_CODE_PARSING_CONTAINER_UNSUPPORTED,
+    PlaybackException.ERROR_CODE_PARSING_MANIFEST_UNSUPPORTED,
+    PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+    PlaybackException.ERROR_CODE_DECODING_FORMAT_EXCEEDS_CAPABILITIES,
+    PlaybackException.ERROR_CODE_DECODING_FAILED -> true
+    else -> false
+}
 
 fun QueueEntry.toEntity(position: Int) = QueueEntryEntity(
     position = position,

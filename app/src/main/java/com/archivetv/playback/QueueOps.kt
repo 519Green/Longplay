@@ -86,6 +86,14 @@ object QueueOps {
     fun replaceAll(files: List<QueueEntry>): QueuePlan =
         QueuePlan(listOf(QueueEdit.Insert(0, files)), 0, clear = true)
 
+    /**
+     * The files one item adds to Play all / Shuffle: a whole album or a
+     * two-sided 78, but only the first file of a compilation (more than
+     * [maxFiles]), so one V-Disc set does not fill the queue.
+     */
+    fun forPlayAll(files: List<QueueEntry>, maxFiles: Int = 30): List<QueueEntry> =
+        if (files.size > maxFiles) files.take(1) else files
+
     /** Drops history older than the [keep] files before [current]. */
     fun trimHistory(current: Int, keep: Int = 20): QueueEdit.Remove? =
         if (current > keep) QueueEdit.Remove(0, current - keep) else null

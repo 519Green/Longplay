@@ -47,4 +47,28 @@ class QueueMappingTest {
         assertThat(librivox.toEntity(3).kind).isEqualTo("music")
         assertThat(librivox.toEntity(3).toEntry()).isEqualTo(librivox)
     }
+
+    @Test fun addedItemsAreRebuiltOrRejected() {
+        val stripped = entry.toMediaItem().buildUpon().setUri(null as String?).build()
+        assertThat(playableItems(listOf(stripped))!!.single().localConfiguration).isNotNull()
+        // An external controller's item (mediaId only, no extras) cannot be played: reject the request.
+        val foreign = androidx.media3.common.MediaItem.Builder().setMediaId("something").build()
+        assertThat(playableItems(listOf(stripped, foreign))).isNull()
+    }
+
+    @Test fun onlyFileSpecificErrorsSkipToNext() {
+        val skip = listOf(
+            androidx.media3.common.PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS,
+            androidx.media3.common.PlaybackException.ERROR_CODE_IO_FILE_NOT_FOUND,
+            androidx.media3.common.PlaybackException.ERROR_CODE_PARSING_CONTAINER_MALFORMED,
+            androidx.media3.common.PlaybackException.ERROR_CODE_DECODING_FORMAT_UNSUPPORTED,
+        )
+        val stay = listOf(
+            androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED,
+            androidx.media3.common.PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT,
+            androidx.media3.common.PlaybackException.ERROR_CODE_UNSPECIFIED,
+        )
+        skip.forEach { assertThat(skipsToNextFile(it)).isTrue() }
+        stay.forEach { assertThat(skipsToNextFile(it)).isFalse() }
+    }
 }
