@@ -207,6 +207,7 @@ private fun NextUpRow(title: String, cards: List<NextUpCard>, onPlayFile: (Strin
                     item = card.item,
                     subtitle = card.label.ifEmpty { null },
                     onClick = { onPlayFile(card.item.identifier, card.fileIndex) },
+                    focusKey = "$title/${card.item.identifier}",
                 )
             }
         }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import com.archivetv.ui.common.returnFocusTarget
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -50,14 +51,18 @@ fun MediaCard(
     width: Dp? = Dimens.CardWidth,
     subtitle: String? = listOfNotNull(displayYear(item.title, item.year), "Community upload".takeIf { item.isCommunity })
         .joinToString(" · ").ifEmpty { null },
+    /** Unique on the screen; Back from what this card opens returns focus here. */
+    focusKey: String = item.identifier,
 ) {
+    val target = returnFocusTarget(focusKey)
     StandardCardContainer(
         modifier = if (width != null) modifier.width(width) else modifier.fillMaxWidth(),
         imageCard = { interaction ->
             Card(
-                onClick = onClick,
+                onClick = { target.opened(); onClick() },
                 interactionSource = interaction,
                 modifier = cardModifier
+                    .then(target.modifier)
                     .fillMaxWidth()
                     .aspectRatio(Dimens.CardImageAspect),
                 border = CardDefaults.border(

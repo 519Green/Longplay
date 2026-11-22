@@ -76,6 +76,12 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.rememberCoroutineScope
 import com.archivetv.ArchiveTvApp
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.withTimeoutOrNull
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.staticCompositionLocalOf
+import com.archivetv.ui.common.LocalReturnFocus
+import com.archivetv.ui.common.ReturnFocus
 
 object Routes {
     const val HOME = "home"
@@ -176,6 +182,7 @@ fun AppNavHost(
     // ...): the popped screen took the focused node with it, and the drawer,
     // first in layout, would otherwise take focus.
     var previousRoute by remember { mutableStateOf<String?>(null) }
+    val returnFocus = remember { mutableMapOf<String, ReturnFocus>() }
     val seenEntries = remember { mutableSetOf<String>() }
     LaunchedEffect(backStack?.id) {
         val left = previousRoute
@@ -189,7 +196,14 @@ fun AppNavHost(
         if (entry != null && (left == Routes.NOW_PLAYING || (returning && fromPushed)) && previousRoute != Routes.NOW_PLAYING) {
             // RESUMED once the screen transition has finished.
             entry.lifecycle.currentStateFlow.first { it.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) }
-            runCatching { contentFocus.requestFocus() }
+            // The card or tile that opened the closed screen takes focus back;
+            // otherwise (a button opened it, or the card is gone) the restorer picks.
+            val memory = returnFocus[entry.id]
+            if (memory != null && memory.restore()) {
+                withTimeoutOrNull(600) { snapshotFlow { memory.isRestoring }.first { !it } }
+                memory.cancel()
+            }
+            if (memory?.restored != true) runCatching { contentFocus.requestFocus() }
         }
     }
 
@@ -266,6 +280,7 @@ fun AppNavHost(
                     false
                 }
         ) {
+        CompositionLocalProvider(LocalReturnFocusMap provides returnFocus) {
         NavHost(nav, startDestination = Routes.HOME) {
             screen(Routes.HOME) {
                 HomeScreen(
@@ -389,6 +404,7 @@ fun AppNavHost(
         }
         }
         }
+        }
     }
 }
 
@@ -420,8 +436,15 @@ private fun NavGraphBuilder.screen(
     arguments: List<NamedNavArgument> = emptyList(),
     content: @Composable (NavBackStackEntry) -> Unit,
 ) = composable(route, arguments) { entry ->
-    Box(Modifier.fillMaxSize().focusRestorer().focusGroup()) { content(entry) }
+    val map = LocalReturnFocusMap.current
+    val memory = remember(entry.id) { map.getOrPut(entry.id) { ReturnFocus() } }
+    CompositionLocalProvider(LocalReturnFocus provides memory) {
+        Box(Modifier.fillMaxSize().focusRestorer().focusGroup()) { content(entry) }
+    }
 }
+
+/** One [ReturnFocus] per back stack entry id, kept by the nav host across recompositions. */
+private val LocalReturnFocusMap = staticCompositionLocalOf<MutableMap<String, ReturnFocus>> { mutableMapOf() }
 
 /** Top-level screens replace each other above Home instead of stacking up. */
 private fun NavHostController.navigateTopLevel(route: String) {

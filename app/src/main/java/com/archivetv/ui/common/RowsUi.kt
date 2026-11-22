@@ -86,10 +86,11 @@ fun CardRow(
             horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
         ) {
             items(items, key = { it.identifier }) { item ->
-                MediaCard(item = item, onClick = { onClick(item) })
+                // The same item can sit in several rows; the title tells them apart.
+                MediaCard(item = item, onClick = { onClick(item) }, focusKey = "$title/${item.identifier}")
             }
             if (onSeeAll != null) {
-                item(key = "see-all") { LabelCard("See all", onClick = onSeeAll) }
+                item(key = "see-all") { LabelCard("See all", onClick = onSeeAll, focusKey = "$title/see-all") }
             }
         }
     }
@@ -129,7 +130,9 @@ fun TileRow(title: String?, tiles: List<Pair<String, () -> Unit>>, start: Dp = D
             contentPadding = rowPadding(start),
             horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
         ) {
-            items(tiles, key = { it.first }) { (label, onClick) -> LabelCard(label, onClick = onClick) }
+            items(tiles, key = { it.first }) { (label, onClick) ->
+                LabelCard(label, onClick = onClick, focusKey = "$title/$label")
+            }
         }
     }
 }
@@ -142,11 +145,15 @@ fun LabelCard(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     width: Dp? = Dimens.CardWidth,
+    /** Unique on the screen; Back from what this tile opens returns focus here. */
+    focusKey: String = label,
 ) {
+    val target = returnFocusTarget(focusKey)
     Card(
-        onClick = onClick,
+        onClick = { target.opened(); onClick() },
         modifier = (if (width != null) modifier.width(width) else modifier.fillMaxWidth())
-            .aspectRatio(Dimens.CardImageAspect),
+            .aspectRatio(Dimens.CardImageAspect)
+            .then(target.modifier),
         colors = CardDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Box(Modifier.fillMaxSize().padding(12.dp), contentAlignment = Alignment.Center) {
