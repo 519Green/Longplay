@@ -104,4 +104,28 @@ class CatalogLiveCheckTest {
         }
         assertWithMessage("recordings that fail to load").that(failed).isEmpty()
     }
+
+    /** Each derived group builds at least 10 entries from live metadata, and its first entry has results. */
+    @Test fun everyDerivedGroupHasEntries() = runBlocking {
+        assumeTrue(System.getenv("ARCHIVETV_LIVE_CHECK") != null)
+        val catalog = CatalogLoader().parse(File("src/main/assets/browse_config.json").readText())
+        val service = Retrofit.Builder()
+            .baseUrl("https://archive.org/")
+            .addConverterFactory(MoshiConverterFactory.create(archiveMoshi()))
+            .build()
+            .create(InternetArchiveService::class.java)
+        val groups = com.archivetv.data.DerivedGroups(service)
+        val render = SearchQueryBuilder()::render
+        val derived = listOf("tv-shows", "edu-studios", "edu-sponsors", "listen-radio-shows").map { catalog.derived(it)!! }
+        val short = mutableListOf<String>()
+        for (node in derived) {
+            val entries = groups.entries(node)
+            println("DERIVED %-20s %3d  %s".format(node.id, entries.size, entries.joinToString(" | ") { it.label }))
+            val first = entries.firstOrNull()
+            val hits = first?.let { service.search(render(it.query, null), rows = 0, sort = "downloads desc").response.numFound } ?: 0
+            println("DERIVED %-20s first=%s results=%d".format(node.id, first?.label, hits))
+            if (entries.size < 10 || hits == 0) short += node.id
+        }
+        assertWithMessage("derived groups with under 10 entries or an empty first entry").that(short).isEmpty()
+    }
 }

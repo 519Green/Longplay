@@ -3,6 +3,7 @@ package com.archivetv
 import android.app.Application
 import androidx.room.Room
 import com.archivetv.data.ArchiveRepository
+import com.archivetv.data.DerivedGroups
 import com.archivetv.data.LibraryRepository
 import com.archivetv.data.LiveMusicRepository
 import com.archivetv.data.PlayableFileSelector
@@ -47,6 +48,7 @@ class AppContainer(app: Application) {
 
     val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder)
     val liveMusic = LiveMusicRepository(service)
+    val derivedGroups = DerivedGroups(service)
     val libraryRepository = LibraryRepository(db.favoriteDao(), db.resumeDao())
     val queueDao = db.queueDao()
 

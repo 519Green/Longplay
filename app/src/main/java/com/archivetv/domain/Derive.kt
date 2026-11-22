@@ -75,7 +75,7 @@ fun seriesEntries(docs: List<TitleDoc>, rule: DeriveRule.TitleSeries): List<Deri
         .map { (key, label, _) ->
             DerivedEntry(
                 key = slug(key),
-                label = label,
+                label = displayLabel(label),
                 query = CategoryQuery(collections = rule.collections, titleAny = listOf(label), mediatype = rule.mediatype),
             )
         }
@@ -134,7 +134,7 @@ fun valueEntries(values: List<String>, rule: DeriveRule.FieldValues): List<Deriv
             val base = CategoryQuery(collections = rule.collections, mediatype = rule.mediatype)
             DerivedEntry(
                 key = slug(key),
-                label = label,
+                label = displayLabel(label),
                 query = if (rule.field == "sponsor") base.copy(sponsorAny = distinct) else base.copy(creatorAny = distinct),
             )
         }
@@ -153,6 +153,29 @@ fun subcollectionEntries(docs: List<CollectionDoc>, rule: DeriveRule.Subcollecti
                 query = CategoryQuery(collections = listOf(it.identifier), mediatype = rule.mediatype),
             )
         }
+
+private val minorWords = setOf("a", "an", "and", "the", "of", "in", "on", "at", "for", "to", "or", "with")
+
+/**
+ * A metadata value as a tile label: library-style inverted names read naturally
+ * ("Handy (Jam) Organization" -> "Jam Handy Organization"), and values in all
+ * capitals, all lower case or sentence case get title case. Queries keep the raw value.
+ */
+fun displayLabel(raw: String): String {
+    val text = parenAfterFirstWord.matchEntire(raw.trim())?.let { m ->
+        "${m.groupValues[2]} ${m.groupValues[1]}${m.groupValues[3]}"
+    } ?: raw.trim()
+    val words = text.split(' ').filter { it.isNotEmpty() }
+    val letters = text.filter { it.isLetter() }
+    val allUpper = letters.isNotEmpty() && letters.all { it.isUpperCase() }
+    val allLower = letters.isNotEmpty() && letters.all { it.isLowerCase() }
+    val sentenceCase = words.size > 1 && words.drop(1).all { w -> w.first().let { !it.isLetter() || it.isLowerCase() } }
+    if (!allUpper && !allLower && !sentenceCase) return text
+    return words.mapIndexed { i, w ->
+        val lower = w.lowercase()
+        if (i > 0 && lower in minorWords) lower else lower.replaceFirstChar { it.titlecase() }
+    }.joinToString(" ")
+}
 
 /** The most common value; ties go to the alphabetically first. */
 private fun mostFrequent(values: List<String>): String =

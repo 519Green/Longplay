@@ -23,6 +23,15 @@ interface InternetArchiveService {
         @Query("page") page: Int = 1,
     ): LiveResponseDto
 
+    /** Search returning only [fields], for derived catalog groups. */
+    @GET("advancedsearch.php?output=json")
+    suspend fun searchFields(
+        @Query("q") query: String,
+        @Query("fl[]") fields: List<String>,
+        @Query("rows") rows: Int,
+        @Query("sort[]") sort: String,
+    ): FieldsResponseDto
+
     @GET("metadata/{identifier}")
     suspend fun metadata(@Path("identifier") identifier: String): MetadataResponseDto
 }

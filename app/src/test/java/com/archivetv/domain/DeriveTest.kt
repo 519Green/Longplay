@@ -101,4 +101,19 @@ class DeriveTest {
         keys.forEach { assertThat(it).matches(safe.pattern) }
         assertThat(slug("Ozzie & Harriet")).isEqualTo("ozzie-harriet")
     }
+
+    @Test fun labelsReadNaturally() {
+        assertThat(displayLabel("Handy (Jam) Organization")).isEqualTo("Jam Handy Organization")
+        assertThat(displayLabel("duPont (E.I.) de Nemours & Company")).isEqualTo("E.I. duPont de Nemours & Company")
+        assertThat(displayLabel("National Geographic Society (U.S.)")).isEqualTo("National Geographic Society (U.S.)")
+        assertThat(displayLabel("STORIES OF THE CENTURY")).isEqualTo("Stories of the Century")
+        assertThat(displayLabel("Hill street blues")).isEqualTo("Hill Street Blues")
+        assertThat(displayLabel("WKRP In Cincinnati")).isEqualTo("WKRP In Cincinnati")
+        val studios = valueEntries(List(10) { "Handy (Jam) Organization" }, creators(10))
+        assertThat(studios.single().label).isEqualTo("Jam Handy Organization")
+        assertThat(studios.single().query.creatorAny).containsExactly("Handy (Jam) Organization")
+        val series = seriesEntries(docs("STORIES OF THE CENTURY - x", 4), shows)
+        assertThat(series.single().label).isEqualTo("Stories of the Century")
+        assertThat(series.single().query.titleAny).containsExactly("STORIES OF THE CENTURY")
+    }
 }

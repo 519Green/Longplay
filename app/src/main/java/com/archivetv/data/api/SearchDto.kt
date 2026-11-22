@@ -44,3 +44,22 @@ data class LiveDocDto(
     val downloads: Int? = null,
     @StringOrList val creator: List<String> = emptyList(),
 )
+
+/** Search with caller-chosen fields for derived catalog groups (titles, creators, sponsors, sub-collections). */
+@JsonClass(generateAdapter = true)
+data class FieldsResponseDto(val response: FieldsBodyDto)
+
+@JsonClass(generateAdapter = true)
+data class FieldsBodyDto(
+    @Json(name = "numFound") val numFound: Int,
+    val docs: List<FieldDocDto>,
+)
+
+@JsonClass(generateAdapter = true)
+data class FieldDocDto(
+    val identifier: String? = null,
+    @StringOrList val title: List<String> = emptyList(),
+    @StringOrList val creator: List<String> = emptyList(),
+    @StringOrList val sponsor: List<String> = emptyList(),
+    val downloads: Int? = null,
+)
