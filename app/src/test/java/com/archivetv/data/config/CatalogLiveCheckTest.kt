@@ -84,4 +84,24 @@ class CatalogLiveCheckTest {
         counts.forEach { (k, v) -> println("LIVE %-28s %5d".format(k, v)) }
         assertWithMessage("live queries with no results").that(counts.filterValues { it == 0 }.keys).isEmpty()
     }
+
+    /** Every recording of one well-taped concert opens (item page parse), so Other recordings never dead-ends. */
+    @Test fun everyRecordingOfAConcertLoads() = runBlocking {
+        assumeTrue(System.getenv("ARCHIVETV_LIVE_CHECK") != null)
+        val service = Retrofit.Builder()
+            .baseUrl("https://archive.org/")
+            .addConverterFactory(MoshiConverterFactory.create(archiveMoshi()))
+            .build()
+            .create(InternetArchiveService::class.java)
+        val live = com.archivetv.data.LiveMusicRepository(service)
+        val archive = com.archivetv.data.ArchiveRepository(service, com.archivetv.data.PlayableFileSelector(), SearchQueryBuilder())
+        val concert = live.mostPlayed().maxBy { it.recordingCount }
+        val failed = mutableListOf<String>()
+        for (r in live.recordings(concert.artistId, concert.date, concert.showPart)) {
+            val result = runCatching { archive.detail(r.identifier) }
+            println("REC %-60s %s".format(r.identifier, result.fold({ "${it.files.size} files live=${it.live != null}" }, { "FAILED $it" })))
+            if (result.isFailure) failed += r.identifier
+        }
+        assertWithMessage("recordings that fail to load").that(failed).isEmpty()
+    }
 }

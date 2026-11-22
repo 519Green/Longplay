@@ -201,4 +201,14 @@ class ArchiveRepositoryTest {
         ))
         assertThat(repo.detail("holmes").live).isNull()
     }
+
+    @Test fun detailParsesFilesWhoseOriginalIsAList() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Show","mediatype":"etree","collection":["SomeBand","etree"],"date":"1977-05-08"},""" +
+                """"files":[{"name":"t1.flac","format":"Flac","source":"original"},""" +
+                """{"name":"t1.mp3","format":"VBR MP3","source":"derivative","original":["t1.flac","t1.ffp"],"title":"Song","track":"1"}]}"""
+        ))
+        val d = repo.detail("show")
+        assertThat(d.files.map { it.fileName }).containsExactly("t1.mp3")
+    }
 }

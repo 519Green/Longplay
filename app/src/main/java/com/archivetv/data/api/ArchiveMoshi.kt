@@ -44,7 +44,24 @@ object StringOrListAdapter {
     }
 }
 
+/** A single-string field that some items send as an array (e.g. a file's `original`): the first value wins. */
+@Retention(AnnotationRetention.RUNTIME)
+@Target(AnnotationTarget.FIELD, AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
+@JsonQualifier
+annotation class FirstString
+
+object FirstStringAdapter {
+    @FromJson @FirstString
+    fun fromJson(reader: JsonReader): String? = StringOrListAdapter.fromJson(reader).firstOrNull()
+
+    @ToJson
+    fun toJson(writer: JsonWriter, @FirstString value: String?) {
+        writer.value(value)
+    }
+}
+
 fun archiveMoshi(): Moshi = Moshi.Builder()
     .add(StringOrListAdapter)
+    .add(FirstStringAdapter)
     .add(KotlinJsonAdapterFactory())
     .build()
