@@ -37,12 +37,18 @@ import androidx.tv.material3.Button
 import androidx.tv.material3.Text
 import com.archivetv.ArchiveTvApp
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.ui.common.LabelCard
 import com.archivetv.ui.components.MediaCard
+import com.archivetv.ui.live.toCardItem
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.itemsIndexed as rowItemsIndexed
+import androidx.compose.ui.focus.focusRestorer
 import com.archivetv.ui.theme.Dimens
 
 @Composable
 fun SearchScreen(
     onItemClick: (ArchiveItem) -> Unit,
+    onOpenArtist: (String) -> Unit = {},
     voicePending: Boolean = false,
     onVoiceStarted: () -> Unit = {},
     viewModel: SearchViewModel = searchViewModel(),
@@ -60,8 +66,10 @@ fun SearchScreen(
         submits++
         viewModel.submit()
     }
-    LaunchedEffect(state.watch, state.listen, submits) {
-        if (submits > focusedSubmit && (state.watch.isNotEmpty() || state.listen.isNotEmpty())) {
+    LaunchedEffect(state.watch, state.listen, state.liveArtists, state.liveConcerts, submits) {
+        val any = state.watch.isNotEmpty() || state.listen.isNotEmpty() ||
+            state.liveArtists.isNotEmpty() || state.liveConcerts.isNotEmpty()
+        if (submits > focusedSubmit && any) {
             focusedSubmit = submits
             runCatching { firstResultFocus.requestFocus() }
         }
@@ -164,6 +172,42 @@ fun SearchScreen(
                     )
                 }
             }
+            if (state.liveArtists.isNotEmpty() || state.liveConcerts.isNotEmpty()) {
+                item(key = "live-header", span = { GridItemSpan(maxLineSpan) }) {
+                    Text("Live Music", style = MaterialTheme.typography.titleMedium)
+                }
+                val liveFirst = state.watch.isEmpty() && state.listen.isEmpty()
+                if (state.liveArtists.isNotEmpty()) {
+                    item(key = "live-artists", span = { GridItemSpan(maxLineSpan) }) {
+                        LazyRow(
+                            modifier = Modifier.focusRestorer(),
+                            horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
+                        ) {
+                            rowItemsIndexed(state.liveArtists, key = { _, a -> a.id }) { index, artist ->
+                                LabelCard(
+                                    artist.name,
+                                    onClick = { onOpenArtist(artist.id) },
+                                    modifier = if (index == 0 && liveFirst) Modifier.focusRequester(firstResultFocus) else Modifier,
+                                )
+                            }
+                        }
+                    }
+                }
+                itemsIndexed(state.liveConcerts, key = { _, c -> "c-" + c.best.identifier }) { index, c ->
+                    val card = c.toCardItem()
+                    MediaCard(
+                        item = card,
+                        subtitle = card.year,
+                        onClick = { onItemClick(card) },
+                        width = null,
+                        cardModifier = if (index == 0 && liveFirst && state.liveArtists.isEmpty()) {
+                            Modifier.focusRequester(firstResultFocus)
+                        } else {
+                            Modifier
+                        },
+                    )
+                }
+            }
         }
     }
 }
@@ -174,6 +218,11 @@ fun searchViewModel(): SearchViewModel {
     return viewModel(factory = object : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            SearchViewModel(app.container.archiveRepository::search, app.container.archiveRepository::searchAudio) as T
+            SearchViewModel(
+                app.container.archiveRepository::search,
+                app.container.archiveRepository::searchAudio,
+                searchLiveArtists = { app.container.liveMusic.searchArtists(it) },
+                searchLiveConcerts = { app.container.liveMusic.searchConcerts(it) },
+            ) as T
     })
 }
