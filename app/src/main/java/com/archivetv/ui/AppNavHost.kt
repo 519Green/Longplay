@@ -40,6 +40,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NamedNavArgument
+import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
@@ -264,7 +267,7 @@ fun AppNavHost(
                 }
         ) {
         NavHost(nav, startDestination = Routes.HOME) {
-            composable(Routes.HOME) {
+            screen(Routes.HOME) {
                 HomeScreen(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
                     onPlayFile = { id, index -> nav.navigate(Routes.player(id, index)) },
@@ -276,7 +279,7 @@ fun AppNavHost(
                     },
                 )
             }
-            composable(Routes.SECTION, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            screen(Routes.SECTION, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
                 SectionScreen(
                     sectionId = entry.arguments!!.getString("id")!!,
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
@@ -285,23 +288,23 @@ fun AppNavHost(
                     onOpenLive = { nav.navigate(Routes.LIVE) },
                 )
             }
-            composable(Routes.LIVE) {
+            screen(Routes.LIVE) {
                 LiveMusicScreen(
                     onOpenRecording = { nav.navigate(Routes.detail(it)) },
                     onOpenArtist = { nav.navigate(Routes.liveArtist(it)) },
                     onAllArtists = { nav.navigate(Routes.LIVE_ARTISTS) },
                 )
             }
-            composable(Routes.LIVE_ARTISTS) {
+            screen(Routes.LIVE_ARTISTS) {
                 ArtistsScreen(onOpenArtist = { nav.navigate(Routes.liveArtist(it)) })
             }
-            composable(Routes.LIVE_ARTIST, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            screen(Routes.LIVE_ARTIST, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
                 ArtistScreen(
                     artistId = entry.arguments!!.getString("id")!!,
                     onOpenRecording = { nav.navigate(Routes.detail(it)) },
                 )
             }
-            composable(Routes.TILES, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            screen(Routes.TILES, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
                 TilesScreen(
                     groupId = entry.arguments!!.getString("id")!!,
                     onOpenGroup = { nav.navigate(Routes.tiles(it)) },
@@ -309,7 +312,7 @@ fun AppNavHost(
                     onOpenEntry = { group, key -> nav.navigate(Routes.browseDerived(group, key)) },
                 )
             }
-            composable(
+            screen(
                 Routes.BROWSE_DERIVED,
                 arguments = listOf(
                     navArgument("group") { type = NavType.StringType },
@@ -326,7 +329,7 @@ fun AppNavHost(
                     },
                 )
             }
-            composable(Routes.BROWSE, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
+            screen(Routes.BROWSE, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
                 BrowseScreen(
                     leafId = entry.arguments!!.getString("id")!!,
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
@@ -336,7 +339,7 @@ fun AppNavHost(
                     },
                 )
             }
-            composable(Routes.SEARCH) {
+            screen(Routes.SEARCH) {
                 SearchScreen(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
                     onOpenArtist = { nav.navigate(Routes.liveArtist(it)) },
@@ -345,10 +348,10 @@ fun AppNavHost(
                     onVoiceStarted = { voicePending = false },
                 )
             }
-            composable(Routes.MY_LIST) {
+            screen(Routes.MY_LIST) {
                 MyListScreen(onItemClick = { nav.navigate(Routes.detail(it.identifier)) })
             }
-            composable(
+            screen(
                 Routes.DETAIL,
                 arguments = listOf(navArgument("id") { type = NavType.StringType }),
             ) { entry ->
@@ -364,7 +367,7 @@ fun AppNavHost(
                     onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
                 )
             }
-            composable(
+            screen(
                 Routes.PLAYER,
                 arguments = listOf(
                     navArgument("id") { type = NavType.StringType },
@@ -379,7 +382,7 @@ fun AppNavHost(
                     onExit = { nav.popBackStack() },
                 )
             }
-            composable(Routes.NOW_PLAYING) {
+            screen(Routes.NOW_PLAYING) {
                 NowPlayingScreen()
             }
         }
@@ -404,6 +407,20 @@ private fun NavigationDrawerScope.DrawerItem(
     ) {
         Text(destination.label)
     }
+}
+
+/**
+ * A destination in its own focus group with its own restorer, so each screen
+ * keeps the child it last focused while another screen (Detail, the player)
+ * is on top. The content box's restorer alone only remembers the last focused
+ * node anywhere, which is gone by the time Back returns to this screen.
+ */
+private fun NavGraphBuilder.screen(
+    route: String,
+    arguments: List<NamedNavArgument> = emptyList(),
+    content: @Composable (NavBackStackEntry) -> Unit,
+) = composable(route, arguments) { entry ->
+    Box(Modifier.fillMaxSize().focusRestorer().focusGroup()) { content(entry) }
 }
 
 /** Top-level screens replace each other above Home instead of stacking up. */
