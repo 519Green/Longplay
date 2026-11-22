@@ -169,12 +169,21 @@ fun AppNavHost(
     // Closing Now Playing leaves nothing focused (the bar refuses focus it was
     // not sent to); give focus back to the screen below, whose restorer picks
     // the item it last had.
+    // The same applies to Back from any pushed screen (Detail, Player, Browse,
+    // ...): the popped screen took the focused node with it, and the drawer,
+    // first in layout, would otherwise take focus.
     var previousRoute by remember { mutableStateOf<String?>(null) }
+    val seenEntries = remember { mutableSetOf<String>() }
     LaunchedEffect(backStack?.id) {
-        val wasNowPlaying = previousRoute == Routes.NOW_PLAYING
-        previousRoute = backStack?.destination?.route
+        val left = previousRoute
         val entry = backStack
-        if (wasNowPlaying && previousRoute != Routes.NOW_PLAYING && entry != null) {
+        // Sections share one pattern; key them by id like the drawer does.
+        previousRoute = entry?.destination?.route.let { pattern ->
+            if (pattern == Routes.SECTION) Routes.section(entry?.arguments?.getString("id").orEmpty()) else pattern
+        }
+        val returning = entry != null && !seenEntries.add(entry.id)
+        val fromPushed = left != null && left != previousRoute && destinations.none { it.route == left }
+        if (entry != null && (left == Routes.NOW_PLAYING || (returning && fromPushed)) && previousRoute != Routes.NOW_PLAYING) {
             // RESUMED once the screen transition has finished.
             entry.lifecycle.currentStateFlow.first { it.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) }
             runCatching { contentFocus.requestFocus() }
@@ -261,7 +270,10 @@ fun AppNavHost(
                     onPlayFile = { id, index -> nav.navigate(Routes.player(id, index)) },
                     onOpenGroup = { nav.navigate(Routes.tiles(it)) },
                     onOpenLeaf = { nav.navigate(Routes.browse(it)) },
-                    onListen = ::playAudio,
+                    onListen = { id, index -> playAudio(id, index) },
+                    onPlay = { id, isAudio ->
+                        if (isAudio) playAudio(id, null) else nav.navigate(Routes.player(id))
+                    },
                 )
             }
             composable(Routes.SECTION, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->

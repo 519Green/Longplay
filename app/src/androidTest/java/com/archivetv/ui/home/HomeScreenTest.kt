@@ -22,7 +22,7 @@ class HomeScreenTest {
                 continueWatching = emptyList(),
                 favorites = listOf(ArchiveItem("id1", "Saved Film")),
                 rows = listOf(ContentRow(BrowseRow("film-noir", "Film Noir", "q"), RowState.Failed)),
-                hero = null,
+                heroSlides = emptyList(),
                 onItemClick = {}, onRetry = {},
             )
         }

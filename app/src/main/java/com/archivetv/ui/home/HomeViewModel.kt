@@ -9,6 +9,7 @@ import com.archivetv.ui.common.ParallelRows
 import com.archivetv.ui.common.RowState
 import com.archivetv.data.ListenCard
 import com.archivetv.data.NextUp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,6 +17,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+/** One hero slide: an item already checked to have playable files. */
+data class HeroSlide(
+    val item: ArchiveItem,
+    /** Display year (see displayYear); null when untrustworthy. */
+    val year: String? = null,
+    val description: String? = null,
+    val isAudio: Boolean = false,
+)
 
 /** A Next Up card: the item, which file to play, and its card subtitle. */
 data class NextUpCard(val item: ArchiveItem, val fileIndex: Int, val label: String)
@@ -27,12 +37,19 @@ data class HomeUiState(
     val continueListening: List<NextUpCard> = emptyList(),
     val favorites: List<ArchiveItem> = emptyList(),
     val rows: List<ContentRow> = emptyList(),
-    val hero: ArchiveItem? = null,
+    /** Up to [HERO_SLIDES] playable items from the top of the first loaded row, in row order. */
+    val heroSlides: List<HeroSlide> = emptyList(),
 )
 
+const val HERO_SLIDES = 5
+/** Candidates checked for playable files; some popular items have none left on IA. */
+const val HERO_CANDIDATES = 8
+
 /**
- * The hero is the first item of the first row (in config order) that is not
- * failed or empty, so it does not jump when a later row finishes first.
+ * Hero slides come from the first row (in config order) that is not failed or
+ * empty, so they do not jump when a later row finishes first. Each candidate
+ * is checked with [heroCheck] (null = nothing playable) and slides are
+ * published in row order as soon as every earlier candidate has been checked.
  */
 class HomeViewModel(
     configuredRows: List<BrowseRow>,
@@ -42,6 +59,7 @@ class HomeViewModel(
     favorites: Flow<List<ArchiveItem>>,
     nextUp: Flow<List<NextUp>> = emptyFlow(),
     continueListening: Flow<List<ListenCard>> = emptyFlow(),
+    private val heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
 ) : ViewModel() {
     private val rows = ParallelRows(viewModelScope, configuredRows, loadRow)
 
@@ -93,7 +111,10 @@ class HomeViewModel(
             favorites.collect { fav -> _state.update { it.copy(favorites = fav) } }
         }
         viewModelScope.launch {
-            rows.state.collect { list -> _state.update { it.copy(rows = list, hero = heroFrom(list)) } }
+            rows.state.collect { list ->
+                _state.update { it.copy(rows = list) }
+                updateHero(list)
+            }
         }
         rows.start()
     }
@@ -108,11 +129,42 @@ class HomeViewModel(
         }
     }
 
-    private fun heroFrom(rows: List<ContentRow>): ArchiveItem? {
+    private var heroKey: List<String>? = null
+    private var heroJob: Job? = null
+
+    private fun updateHero(rows: List<ContentRow>) {
+        val candidates = heroSource(rows)?.take(HERO_CANDIDATES) ?: return
+        val key = candidates.map { it.identifier }
+        if (key == heroKey) return
+        heroKey = key
+        heroJob?.cancel()
+        heroJob = viewModelScope.launch {
+            val checked = arrayOfNulls<HeroSlide>(candidates.size)
+            val done = BooleanArray(candidates.size)
+            fun publish() {
+                val slides = mutableListOf<HeroSlide>()
+                for (i in candidates.indices) {
+                    if (!done[i] || slides.size == HERO_SLIDES) break
+                    checked[i]?.let(slides::add)
+                }
+                _state.update { it.copy(heroSlides = slides) }
+            }
+            candidates.forEachIndexed { i, item ->
+                launch {
+                    checked[i] = runCatching { heroCheck(item) }.getOrNull()
+                    done[i] = true
+                    publish()
+                }
+            }
+        }
+    }
+
+    /** Items of the first non-failed, non-empty row; null while an earlier row is still loading. */
+    private fun heroSource(rows: List<ContentRow>): List<ArchiveItem>? {
         for (row in rows) {
             when (val st = row.state) {
                 RowState.Loading -> return null
-                is RowState.Loaded -> if (st.items.isNotEmpty()) return st.items.first()
+                is RowState.Loaded -> if (st.items.isNotEmpty()) return st.items
                 RowState.Failed -> Unit
             }
         }

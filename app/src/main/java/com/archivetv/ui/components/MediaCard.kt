@@ -30,6 +30,7 @@ import androidx.tv.material3.Text
 import coil.compose.AsyncImage
 import coil.compose.AsyncImagePainter
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.displayYear
 import com.archivetv.ui.theme.Dimens
 import com.archivetv.ui.theme.SectionIcons
 import androidx.tv.material3.Icon
@@ -47,7 +48,7 @@ fun MediaCard(
     modifier: Modifier = Modifier,
     cardModifier: Modifier = Modifier,
     width: Dp? = Dimens.CardWidth,
-    subtitle: String? = listOfNotNull(item.year, "Community upload".takeIf { item.isCommunity })
+    subtitle: String? = listOfNotNull(displayYear(item.title, item.year), "Community upload".takeIf { item.isCommunity })
         .joinToString(" · ").ifEmpty { null },
 ) {
     StandardCardContainer(

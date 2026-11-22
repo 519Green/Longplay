@@ -35,7 +35,8 @@ class HomeViewModelTest {
         lookup: suspend (List<String>) -> Map<String, ArchiveItem> = { emptyMap() },
         nextUp: kotlinx.coroutines.flow.Flow<List<NextUp>> = flowOf(emptyList()),
         continueListening: kotlinx.coroutines.flow.Flow<List<ListenCard>> = flowOf(emptyList()),
-    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()), nextUp, continueListening)
+        heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
+    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()), nextUp, continueListening, heroCheck)
 
     @Test fun rowsStartLoadingAndPublishIndependently() = runTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
@@ -65,9 +66,37 @@ class HomeViewModelTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
         val model = vm(loadRow = { if (it.id == "a") gateA.await() else listOf(item("b1")) })
         // Row B loaded first, but row A is still loading: hero waits for A.
-        assertThat(model.state.value.hero).isNull()
+        assertThat(model.state.value.heroSlides).isEmpty()
         gateA.complete(listOf(item("a1")))
-        assertThat(model.state.value.hero).isEqualTo(item("a1"))
+        assertThat(model.state.value.heroSlides.map { it.item }).containsExactly(item("a1"))
+    }
+
+    @Test fun heroSkipsUnplayableAndKeepsRowOrderAndLimit() = runTest {
+        val ids = (1..9).map { "a$it" }
+        val gates = ids.associateWith { CompletableDeferred<Boolean>() }
+        val model = vm(
+            rows = listOf(rowA),
+            loadRow = { ids.map(::item) },
+            heroCheck = { if (gates.getValue(it.identifier).await()) HeroSlide(it) else null },
+        )
+        // a2 answers first, but a1 is still unchecked: nothing is published yet.
+        gates.getValue("a2").complete(true)
+        assertThat(model.state.value.heroSlides).isEmpty()
+        gates.getValue("a1").complete(false)
+        assertThat(model.state.value.heroSlides.map { it.item.identifier }).containsExactly("a2")
+        ids.drop(2).forEach { gates.getValue(it).complete(true) }
+        // Only the first 8 are candidates, and at most 5 become slides.
+        assertThat(model.state.value.heroSlides.map { it.item.identifier })
+            .containsExactly("a2", "a3", "a4", "a5", "a6").inOrder()
+    }
+
+    @Test fun heroCheckFailureCountsAsUnplayable() = runTest {
+        val model = vm(
+            rows = listOf(rowA),
+            loadRow = { listOf(item("a1"), item("a2")) },
+            heroCheck = { if (it.identifier == "a1") error("down") else HeroSlide(it) },
+        )
+        assertThat(model.state.value.heroSlides.map { it.item.identifier }).containsExactly("a2")
     }
 
     @Test fun heroSkipsFailedAndEmptyRows() = runTest {
@@ -81,7 +110,7 @@ class HomeViewModelTest {
                 }
             },
         )
-        assertThat(model.state.value.hero).isEqualTo(item("c1"))
+        assertThat(model.state.value.heroSlides.map { it.item }).containsExactly(item("c1"))
     }
 
     @Test fun continueWatchingGetsTitlesFromLookupAndKeepsProgress() = runTest {

@@ -95,7 +95,9 @@ class ArchiveRepository(
         val item = ArchiveItem(
             identifier = identifier,
             title = cleanTitle(meta?.title.orEmpty(), identifier),
-            year = meta?.year?.firstOrNull { it.isNotBlank() },
+            // Some items carry only `date` ("1964" or "1964-05-01"); search derives year from it too.
+            year = meta?.year?.firstOrNull { it.isNotBlank() }
+                ?: meta?.date?.firstOrNull { it.isNotBlank() }?.trim()?.take(4)?.takeIf { it.all(Char::isDigit) },
             description = description.ifBlank { null },
         )
         val collections = meta?.collection.orEmpty()
