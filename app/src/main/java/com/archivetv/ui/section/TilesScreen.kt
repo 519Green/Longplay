@@ -79,6 +79,7 @@ fun TilesScreen(
                         when (node) {
                             is CategoryNode.Group -> onOpenGroup(node.id)
                             is CategoryNode.Leaf -> onOpenLeaf(node.id)
+                            is CategoryNode.Derived -> onOpenGroup(node.id)
                         }
                     },
                 )

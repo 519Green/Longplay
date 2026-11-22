@@ -44,6 +44,14 @@ sealed interface CategoryNode {
         /** Browse offers Play all / Shuffle (music leaves). */
         val playAll: Boolean = false,
     ) : CategoryNode
+
+    /** A group whose entries are built from IA metadata when opened (see DeriveRule). */
+    data class Derived(
+        override val id: String,
+        override val title: String,
+        val rule: DeriveRule,
+        val facetGroup: String? = null,
+    ) : CategoryNode
 }
 
 data class Catalog(
@@ -64,5 +72,6 @@ data class Catalog(
     fun node(id: String): CategoryNode? = index[id]
     fun leaf(id: String): CategoryNode.Leaf? = index[id] as? CategoryNode.Leaf
     fun group(id: String): CategoryNode.Group? = index[id] as? CategoryNode.Group
+    fun derived(id: String): CategoryNode.Derived? = index[id] as? CategoryNode.Derived
     val allLeaves: List<CategoryNode.Leaf> get() = index.values.filterIsInstance<CategoryNode.Leaf>()
 }

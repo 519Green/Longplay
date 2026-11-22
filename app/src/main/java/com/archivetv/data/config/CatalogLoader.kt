@@ -3,6 +3,7 @@ package com.archivetv.data.config
 import com.archivetv.domain.Catalog
 import com.archivetv.domain.CategoryNode
 import com.archivetv.domain.CategoryQuery
+import com.archivetv.domain.DeriveRule
 import com.archivetv.domain.Facet
 import com.archivetv.domain.FacetGroup
 import com.squareup.moshi.Moshi
@@ -22,6 +23,19 @@ data class NodeDto(
     val query: QueryDto? = null,
     val facets: String? = null,
     val playAll: Boolean = false,
+    val derive: DeriveDto? = null,
+)
+
+/** A derived group's rule: collections, field and thresholds, never names. */
+data class DeriveDto(
+    val kind: String,
+    val collections: List<String> = emptyList(),
+    val mediatype: String? = null,
+    val sample: Int = 0,
+    val minItems: Int = 1,
+    val limit: Int = 40,
+    val field: String? = null,
+    val parent: String? = null,
 )
 
 data class QueryDto(
@@ -58,12 +72,14 @@ class CatalogLoader {
         val seen = mutableSetOf<String>()
         fun node(n: NodeDto): CategoryNode {
             require(seen.add(n.id)) { "duplicate id ${n.id}" }
-            require((n.children == null) != (n.query == null)) {
-                "${n.id}: a node needs exactly one of children or query"
+            require(listOfNotNull(n.children, n.query, n.derive).size == 1) {
+                "${n.id}: a node needs exactly one of children, query or derive"
             }
             n.facets?.let { require(it in dto.facetGroups) { "${n.id}: unknown facet group $it" } }
             return if (n.children != null) {
                 CategoryNode.Group(n.id, n.title, n.children.map(::node))
+            } else if (n.derive != null) {
+                CategoryNode.Derived(n.id, n.title, n.derive.toRule(n.id), n.facets)
             } else {
                 val mediatype = n.query!!.mediatype
                 require(mediatype == null || mediatype in mediatypes) { "${n.id}: unknown mediatype $mediatype" }
@@ -87,6 +103,28 @@ class CatalogLoader {
     }
 
     private val mediatypes = setOf("movies", "audio")
+    private val derivedFields = setOf("creator", "sponsor")
+
+    private fun DeriveDto.toRule(id: String): DeriveRule {
+        val media = mediatype ?: "movies"
+        require(media in mediatypes) { "$id: unknown mediatype $media" }
+        return when (kind) {
+            "titleSeries" -> {
+                require(collections.isNotEmpty() && sample > 0) { "$id: titleSeries needs collections and sample" }
+                DeriveRule.TitleSeries(collections, media, sample, minItems, limit)
+            }
+            "fieldValues" -> {
+                require(collections.isNotEmpty() && sample > 0) { "$id: fieldValues needs collections and sample" }
+                require(field in derivedFields) { "$id: fieldValues field must be one of $derivedFields" }
+                DeriveRule.FieldValues(field!!, collections, media, sample, minItems, limit)
+            }
+            "subcollections" -> {
+                require(!parent.isNullOrBlank()) { "$id: subcollections needs parent" }
+                DeriveRule.Subcollections(parent!!, media, limit)
+            }
+            else -> throw IllegalArgumentException("$id: unknown derive kind $kind")
+        }
+    }
 
     private fun QueryDto.toDomain() = CategoryQuery(
         collections = collections,

@@ -2,6 +2,7 @@ package com.archivetv.data.config
 
 import com.archivetv.domain.CategoryNode
 import com.archivetv.domain.CategoryQuery
+import com.archivetv.domain.DeriveRule
 import com.google.common.truth.Truth.assertThat
 import com.google.common.truth.Truth.assertWithMessage
 import org.junit.Assert.assertThrows
@@ -122,7 +123,6 @@ class CatalogLoaderTest {
         }
         assertThat(catalog.node("tv-1990s")).isNotNull()
         assertThat(catalog.leaf("home-movies")).isNotNull()
-        assertThat(catalog.leaf("studio-coronet")).isNotNull()
     }
 
     @Test fun emptyQueryIsAllowedOnlyAsFacetGroupMember() {
@@ -172,9 +172,79 @@ class CatalogLoaderTest {
         fun leaves(n: CategoryNode): List<CategoryNode.Leaf> = when (n) {
             is CategoryNode.Leaf -> listOf(n)
             is CategoryNode.Group -> n.children.flatMap(::leaves)
+            is CategoryNode.Derived -> emptyList()
         }
         val all = leaves(listen)
         assertThat(all).isNotEmpty()
         all.forEach { assertWithMessage(it.id).that(it.query.mediatype).isEqualTo("audio") }
+    }
+
+    private fun derived(derive: String, extra: String = "") = """
+    { "version": 2, "sections": [
+      { "id": "edu", "title": "Educational", "children": [
+        { "id": "d", "title": "Sponsored Films", "derive": $derive $extra }
+      ]}
+    ],
+      "facetGroups": { "decade": { "facets": [ { "label": "1940s", "query": { "yearFrom": 1940, "yearTo": 1949 } } ] } }
+    }
+    """
+
+    @Test fun parsesDerivedGroup() {
+        val c = loader.parse(derived(
+            """{ "kind": "fieldValues", "field": "sponsor", "collections": ["prelinger"], "mediatype": "movies",
+                 "sample": 5000, "minItems": 5, "limit": 30 }""",
+            """, "facets": "decade" """,
+        ))
+        val node = c.derived("d")!!
+        assertThat(node.title).isEqualTo("Sponsored Films")
+        assertThat(node.facetGroup).isEqualTo("decade")
+        assertThat(node.rule).isEqualTo(DeriveRule.FieldValues("sponsor", listOf("prelinger"), "movies", 5000, 5, 30))
+        assertThat(c.node("d")).isInstanceOf(CategoryNode.Derived::class.java)
+    }
+
+    @Test fun parsesTitleSeriesAndSubcollections() {
+        val series = loader.parse(derived(
+            """{ "kind": "titleSeries", "collections": ["classic_tv"], "sample": 1500, "minItems": 4, "limit": 40 }""",
+        )).derived("d")!!.rule
+        assertThat(series).isEqualTo(DeriveRule.TitleSeries(listOf("classic_tv"), "movies", 1500, 4, 40))
+        val radio = loader.parse(derived(
+            """{ "kind": "subcollections", "parent": "oldtimeradio", "mediatype": "audio", "limit": 40 }""",
+        )).derived("d")!!.rule
+        assertThat(radio).isEqualTo(DeriveRule.Subcollections("oldtimeradio", "audio", 40))
+    }
+
+    @Test fun rejectsDerivedWithChildren() {
+        assertThrows(IllegalArgumentException::class.java) {
+            loader.parse(derived(
+                """{ "kind": "subcollections", "parent": "oldtimeradio" }""",
+                """, "children": [] """,
+            ))
+        }
+    }
+
+    @Test fun rejectsUnknownDeriveKind() {
+        assertThrows(IllegalArgumentException::class.java) {
+            loader.parse(derived("""{ "kind": "magic", "collections": ["x"], "sample": 10 }"""))
+        }
+    }
+
+    @Test fun rejectsFieldValuesWithoutField() {
+        assertThrows(IllegalArgumentException::class.java) {
+            loader.parse(derived("""{ "kind": "fieldValues", "collections": ["x"], "sample": 10 }"""))
+        }
+    }
+
+    @Test fun bundledCatalogHasNoHandPickedNames() {
+        val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
+        catalog.allLeaves.forEach { leaf ->
+            val q = leaf.query
+            assertWithMessage("hand-picked names in ${leaf.id}").that(q.titleAny + q.creatorAny + q.sponsorAny).isEmpty()
+        }
+        listOf("tv-shows", "edu-studios", "edu-sponsors", "listen-radio-shows").forEach {
+            assertWithMessage(it).that(catalog.derived(it)).isNotNull()
+        }
+        assertThat(catalog.node("animation-studios")).isNull()
+        assertThat(catalog.home.map { it.id }).contains("edu-popular")
+        assertThat(catalog.home.map { it.id }).doesNotContain("studio-coronet")
     }
 }
