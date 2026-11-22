@@ -167,7 +167,8 @@ fun displayLabel(raw: String): String {
     } ?: raw.trim()
     val words = text.split(' ').filter { it.isNotEmpty() }
     val letters = text.filter { it.isLetter() }
-    val allUpper = letters.isNotEmpty() && letters.all { it.isUpperCase() }
+    // A single all-caps word is usually an acronym (NASA, RCA); leave it.
+    val allUpper = words.size > 1 && letters.isNotEmpty() && letters.all { it.isUpperCase() }
     val allLower = letters.isNotEmpty() && letters.all { it.isLowerCase() }
     val sentenceCase = words.size > 1 && words.drop(1).all { w -> w.first().let { !it.isLetter() || it.isLowerCase() } }
     if (!allUpper && !allLower && !sentenceCase) return text

@@ -109,6 +109,7 @@ class DeriveTest {
         assertThat(displayLabel("STORIES OF THE CENTURY")).isEqualTo("Stories of the Century")
         assertThat(displayLabel("Hill street blues")).isEqualTo("Hill Street Blues")
         assertThat(displayLabel("WKRP In Cincinnati")).isEqualTo("WKRP In Cincinnati")
+        assertThat(displayLabel("NASA")).isEqualTo("NASA")
         val studios = valueEntries(List(10) { "Handy (Jam) Organization" }, creators(10))
         assertThat(studios.single().label).isEqualTo("Jam Handy Organization")
         assertThat(studios.single().query.creatorAny).containsExactly("Handy (Jam) Organization")
