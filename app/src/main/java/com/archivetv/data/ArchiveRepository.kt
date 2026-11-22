@@ -67,6 +67,13 @@ class ArchiveRepository(
         return service.search(query = query, rows = limit, sort = "downloads desc").response.docs.map { it.toItem() }
     }
 
+    /** Popular items from [collection] of the same [mediatype], without [exclude] ("More like this"). */
+    suspend fun moreLikeThis(collection: String, mediatype: String, exclude: String, limit: Int = 20): List<ArchiveItem> {
+        val id = exclude.replace("\"", "")
+        val query = queryBuilder.anyOf(listOf(collection)) + " AND mediatype:$mediatype AND NOT identifier:\"$id\""
+        return browse(query, BrowseSort.POPULAR, page = 1, rows = limit).items.filter { it.identifier != exclude }
+    }
+
     /** Looks up titles and years for known identifiers in one request. */
     suspend fun itemsByIds(ids: List<String>): Map<String, ArchiveItem> {
         if (ids.isEmpty()) return emptyMap()

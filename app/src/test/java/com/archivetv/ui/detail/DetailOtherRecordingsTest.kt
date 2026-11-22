@@ -117,4 +117,32 @@ class DetailOtherRecordingsTest {
         assertThat(vm.state.value.item).isNotNull()
         assertThat(vm.state.value.otherRecordings).isEmpty()
     }
+
+    @Test fun moreLikeThisUsesFirstSpecificCollectionAndMediatype() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"A Film","collection":["moviesandfilms","Comedy_Films"]},""" +
+                """"files":[{"name":"a.mp4","format":"h.264"}]}"""
+        ))
+        var asked: Triple<String, String, String>? = null
+        val vm = DetailViewModel(archive, library, moreLike = { c, m, e ->
+            asked = Triple(c, m, e)
+            listOf(com.archivetv.domain.ArchiveItem("other", "Other"))
+        })
+        vm.load("film1")
+        vm.state.first { it.moreLikeThis.isNotEmpty() }
+        assertThat(asked).isEqualTo(Triple("Comedy_Films", "movies", "film1"))
+        assertThat(vm.state.value.unavailableReason).isNull()
+    }
+
+    @Test fun noMoreLikeThisForLiveRecordingsAndReasonWhenUnplayable() = runTest {
+        server.enqueue(MockResponse().setBody(
+            """{"metadata":{"title":"Show","mediatype":"etree","collection":["SomeBand","etree"],"date":"1977-05-08"},"files":[]}"""
+        ))
+        var calls = 0
+        val vm = DetailViewModel(archive, library, recordings = { _, _, _ -> emptyList() }, moreLike = { _, _, _ -> calls++; emptyList() })
+        vm.load("rec")
+        vm.state.first { it.item != null }
+        assertThat(calls).isEqualTo(0)
+        assertThat(vm.state.value.unavailableReason).isEqualTo("No playable audio file in this item")
+    }
 }

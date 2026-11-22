@@ -9,6 +9,8 @@ import com.archivetv.data.db.ResumeEntity
 import com.archivetv.data.episodeLabels
 import com.archivetv.data.startPoint
 import com.archivetv.domain.ArchiveItem
+import com.archivetv.domain.ItemFacts
+import com.archivetv.domain.moreLikeThisCollection
 import com.archivetv.domain.ItemKind
 import com.archivetv.domain.LiveInfo
 import com.archivetv.domain.Recording
@@ -32,12 +34,19 @@ data class DetailUiState(
     val live: LiveInfo? = null,
     /** The concert's other recordings, best first (LMA only). */
     val otherRecordings: List<Recording> = emptyList(),
+    val facts: ItemFacts = ItemFacts(),
+    /** Popular items from the same collection (not for LMA recordings). */
+    val moreLikeThis: List<ArchiveItem> = emptyList(),
 ) {
     val isAudio: Boolean get() = kind != ItemKind.VIDEO
     val playable: Boolean get() = files.isNotEmpty()
     /** Episode display names with the shared show-name prefix removed. */
     val labels: List<String> by lazy { episodeLabels(files.map { it.title }) }
     val start: StartPoint get() = startPoint(files.map { it.fileName }, progress)
+    /** Why Play is disabled, shown under the buttons. */
+    val unavailableReason: String?
+        get() = if (item == null || playable) null
+        else if (isAudio) "No playable audio file in this item" else "No playable video file in this item"
 }
 
 /** Heading above an item's file list: "Chapters · 12", "Episodes · 973", "Tracks · 12". */
@@ -76,6 +85,8 @@ class DetailViewModel(
     private val archive: ArchiveRepository,
     private val library: LibraryRepository,
     private val recordings: suspend (artistId: String, date: String, showPart: String) -> List<Recording> = { _, _, _ -> emptyList() },
+    private val moreLike: suspend (collection: String, mediatype: String, exclude: String) -> List<ArchiveItem> =
+        { c, m, e -> archive.moreLikeThis(c, m, e) },
 ) : ViewModel() {
     private val _state = MutableStateFlow(DetailUiState())
     val state: StateFlow<DetailUiState> = _state
@@ -93,7 +104,17 @@ class DetailViewModel(
                         kind = d.kind,
                         isLibriVox = d.isLibriVox,
                         live = d.live,
+                        facts = d.facts,
                     )
+                    val related = if (d.live == null) moreLikeThisCollection(d.collections) else null
+                    related?.let { collection ->
+                        viewModelScope.launch {
+                            val mediatype = if (d.kind == ItemKind.VIDEO) "movies" else "audio"
+                            runCatching { moreLike(collection, mediatype, identifier) }.onSuccess { list ->
+                                _state.update { s -> s.copy(moreLikeThis = list) }
+                            }
+                        }
+                    }
                     d.live?.let { live ->
                         viewModelScope.launch {
                             runCatching { recordings(live.artistId, live.date, live.showPart) }.onSuccess { list ->

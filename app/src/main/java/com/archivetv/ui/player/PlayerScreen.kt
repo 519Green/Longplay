@@ -27,7 +27,7 @@ import kotlinx.coroutines.runBlocking
  */
 @OptIn(UnstableApi::class)
 @Composable
-fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit) {
+fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromStart: Boolean = false) {
     val context = LocalContext.current
     val app = context.applicationContext as ArchiveTvApp
     val library = app.container.libraryRepository
@@ -76,7 +76,9 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit) {
         files = list
         val names = list.map { it.fileName }
         val progress = library.progress(identifier, names)
-        val (index, positionMs) = if (startIndex != null && startIndex in list.indices) {
+        val (index, positionMs) = if (fromStart) {
+            (startIndex?.takeIf { it in list.indices } ?: 0) to 0L
+        } else if (startIndex != null && startIndex in list.indices) {
             val saved = progress[names[startIndex]]
             startIndex to (saved?.takeIf { isResumable(it.positionMs, it.durationMs) }?.positionMs ?: 0L)
         } else {

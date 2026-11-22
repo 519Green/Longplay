@@ -1,7 +1,18 @@
 package com.archivetv.ui.detail
 
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
+import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.gestures.BringIntoViewSpec
 import androidx.compose.foundation.gestures.LocalBringIntoViewSpec
 import androidx.compose.foundation.layout.*
@@ -45,6 +56,9 @@ import com.archivetv.data.isFinished
 import com.archivetv.data.resumeFraction
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.PlayableFile
+import com.archivetv.domain.durationText
+import com.archivetv.domain.metadataLine
+import com.archivetv.ui.common.CardRow
 
 /**
  * @param onPlay video: identifier plus a file index; null index means "where I left off".
@@ -57,6 +71,9 @@ fun DetailScreen(
     onPlay: (String, Int?) -> Unit,
     onPlayAudio: (String, Int?) -> Unit = onPlay,
     onOpenRecording: (String) -> Unit = {},
+    /** Plays the first file from 0:00 (the flag says whether it goes to the background player). */
+    onPlayFromStart: (String, Boolean) -> Unit = { _, _ -> },
+    onItemClick: (ArchiveItem) -> Unit = {},
     viewModel: DetailViewModel = detailViewModel(),
 ) {
     LaunchedEffect(identifier) { viewModel.load(identifier) }
@@ -83,6 +100,7 @@ fun DetailScreen(
         menuFor = null
     }
     val item = state.item
+    var showDescription by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxSize()) {
         if (item != null) {
             val multi = state.files.size > 1
@@ -96,10 +114,11 @@ fun DetailScreen(
                         item = item,
                         state = state,
                         onPlay = { play(identifier, null) },
+                        onPlayFromStart = { onPlayFromStart(identifier, state.isAudio) },
+                        onMore = { showDescription = true },
                         onPlayNext = { queue(next = true, fileIndex = null) },
                         onAddToQueue = { queue(next = false, fileIndex = null) },
                         onToggleFavorite = viewModel::toggleFavorite,
-                        heightFraction = if (multi) 0.82f else 1f,
                     )
                 }
                 if (multi) {
@@ -150,11 +169,19 @@ fun DetailScreen(
                         )
                     }
                 }
-                if (multi || state.otherRecordings.isNotEmpty()) {
-                    item(key = "bottom") { Spacer(Modifier.height(27.dp)) }
+                if (state.moreLikeThis.isNotEmpty()) {
+                    item(key = "more-like-this") {
+                        Box(Modifier.padding(top = 16.dp)) {
+                            CardRow("More like this", state.moreLikeThis, onItemClick, start = 48.dp)
+                        }
+                    }
                 }
+                item(key = "bottom") { Spacer(Modifier.height(27.dp)) }
             }
             }
+        }
+        if (showDescription && item?.description != null) {
+            DescriptionOverlay(item.title, item.description, onClose = { showDescription = false })
         }
         confirmation?.let {
             Text(
@@ -183,44 +210,23 @@ private fun LazyItemScope.Header(
     item: ArchiveItem,
     state: DetailUiState,
     onPlay: () -> Unit,
+    onPlayFromStart: () -> Unit,
+    onMore: () -> Unit,
     onPlayNext: () -> Unit,
     onAddToQueue: () -> Unit,
     onToggleFavorite: () -> Unit,
-    heightFraction: Float,
 ) {
-    val background = MaterialTheme.colorScheme.background
-    Box(Modifier.fillParentMaxWidth().fillParentMaxHeight(heightFraction)) {
-        Box(Modifier.fillMaxWidth().fillMaxHeight(0.75f).align(Alignment.TopCenter)) {
-            AsyncImage(
-                model = item.thumbnailUrl,
-                contentDescription = item.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
-            )
-            // Fade the backdrop into the page so there is no hard bottom edge.
-            Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            0f to Color.Transparent,
-                            0.45f to background.copy(alpha = 0.35f),
-                            1f to background,
-                        )
-                    )
-            )
-        }
-        // Darken the left side behind the text block.
-        Box(
-            Modifier
-                .fillMaxSize()
-                .background(Brush.horizontalGradient(0f to background.copy(alpha = 0.85f), 0.6f to Color.Transparent))
-        )
+    // Two columns: text and actions at left, the thumbnail at its own modest
+    // size at right. IA thumbnails are about 180 px wide, so a full-width
+    // backdrop would be a blur of pixels (research spec 2.4 and 2.6).
+    Row(
+        modifier = Modifier
+            .fillParentMaxWidth()
+            .padding(start = 48.dp, end = 48.dp, top = 27.dp, bottom = 16.dp),
+        horizontalArrangement = Arrangement.spacedBy(32.dp),
+    ) {
         Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .fillMaxWidth(0.65f)
-                .padding(horizontal = 48.dp, vertical = 27.dp),
+            modifier = Modifier.weight(0.62f),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(
@@ -230,16 +236,19 @@ private fun LazyItemScope.Header(
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
-            (state.live?.let(::concertLine) ?: item.year)?.let {
-                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            val line = state.live?.let(::concertLine) ?: metadataLine(state.facts).ifEmpty { null }
+            line?.let {
+                Text(it, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+            var truncated by remember(item.identifier) { mutableStateOf(false) }
             item.description?.let {
                 Text(
                     it,
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 5,
+                    maxLines = 4,
                     overflow = TextOverflow.Ellipsis,
+                    onTextLayout = { r -> truncated = r.hasVisualOverflow },
                 )
             }
             // Land on the primary action once the item loads (Play, or My List
@@ -258,9 +267,12 @@ private fun LazyItemScope.Header(
                 Button(
                     onClick = onPlay,
                     enabled = state.playable,
-                    modifier = Modifier.focusRequester(playFocus).widthIn(max = 420.dp),
+                    modifier = Modifier.focusRequester(playFocus).widthIn(max = 380.dp),
                 ) {
                     Text(playLabel(state), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                if (state.playable && state.start.kind != StartKind.BEGIN) {
+                    Button(onClick = onPlayFromStart) { Text("Play from start", maxLines = 1, softWrap = false) }
                 }
                 if (state.isAudio && state.playable) {
                     Button(onClick = onPlayNext) { Text("Play next", maxLines = 1, softWrap = false) }
@@ -269,7 +281,68 @@ private fun LazyItemScope.Header(
                 Button(onClick = onToggleFavorite, modifier = Modifier.focusRequester(listFocus)) {
                     Text(if (state.isFavorite) "Remove from My List" else "Add to My List", maxLines = 1, softWrap = false)
                 }
+                if (truncated) {
+                    Button(onClick = onMore) { Text("More", maxLines = 1, softWrap = false) }
+                }
             }
+            state.unavailableReason?.let {
+                Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        AsyncImage(
+            model = item.thumbnailUrl,
+            contentDescription = item.title,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .weight(0.38f)
+                .widthIn(max = 320.dp)
+                .aspectRatio(1.45f)
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant),
+        )
+    }
+}
+
+/** The full description over the page; Up/Down scroll it, Back or OK closes it. */
+@Composable
+private fun DescriptionOverlay(title: String, text: String, onClose: () -> Unit) {
+    val scroll = rememberScrollState()
+    val focus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
+    BackHandler(onBack = onClose)
+    LaunchedEffect(Unit) { runCatching { focus.requestFocus() } }
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .focusRequester(focus)
+            .onPreviewKeyEvent { e ->
+                if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
+                when (e.key) {
+                    Key.DirectionDown -> { scope.launch { scroll.animateScrollBy(240f) }; true }
+                    Key.DirectionUp -> { scope.launch { scroll.animateScrollBy(-240f) }; true }
+                    Key.DirectionLeft, Key.DirectionRight -> true
+                    Key.Enter, Key.DirectionCenter, Key.NumPadEnter -> { onClose(); true }
+                    else -> false
+                }
+            }
+            .focusable(),
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth(0.7f)
+                .align(Alignment.TopCenter)
+                .padding(vertical = 27.dp)
+                .verticalScroll(scroll),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Text(title, style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.onSurface)
+            Text(text, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
+            Text(
+                "Back or OK to close",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -325,7 +398,7 @@ private fun EpisodeRow(
         },
         supportingContent = {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                file.durationSec?.let { Text(minutes(it), style = MaterialTheme.typography.bodySmall) }
+                file.durationSec?.let { Text(durationText(it), style = MaterialTheme.typography.bodySmall) }
                 if (fraction != null && !watched && fraction > 0f) {
                     Box(Modifier.fillMaxWidth(0.5f).height(3.dp).background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.25f))) {
                         Box(Modifier.fillMaxWidth(fraction).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
@@ -362,12 +435,6 @@ private fun QueueMenu(onPlayNext: () -> Unit, onAddToQueue: () -> Unit) {
         Button(onClick = onPlayNext, modifier = Modifier.focusRequester(first)) { Text("Play next") }
         Button(onClick = onAddToQueue) { Text("Add to queue") }
     }
-}
-
-/** 1530 s -> "26 min"; 5520 s -> "1 h 32 min". */
-private fun minutes(seconds: Double): String {
-    val total = (seconds / 60).toInt().coerceAtLeast(1)
-    return if (total < 60) "$total min" else "${total / 60} h ${total % 60} min"
 }
 
 /** 2480 -> "41:20"; 3723 -> "1:02:03". */

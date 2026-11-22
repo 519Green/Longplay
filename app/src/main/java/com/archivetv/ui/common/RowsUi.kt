@@ -76,12 +76,13 @@ fun CardRow(
     items: List<ArchiveItem>,
     onClick: (ArchiveItem) -> Unit,
     onSeeAll: (() -> Unit)? = null,
+    start: Dp = Dimens.ContentStart,
 ) {
     Column {
-        RowHeader(title)
+        RowHeader(title, start)
         LazyRow(
             modifier = Modifier.focusRestorer(),
-            contentPadding = rowPadding(),
+            contentPadding = rowPadding(start),
             horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
         ) {
             items(items, key = { it.identifier }) { item ->

@@ -79,7 +79,7 @@ object Routes {
     const val SEARCH = "search"
     const val MY_LIST = "mylist"
     const val DETAIL = "detail/{id}"
-    const val PLAYER = "player/{id}?file={file}"
+    const val PLAYER = "player/{id}?file={file}&start={start}"
     const val SECTION = "section/{id}"
     const val TILES = "tiles/{id}"
     const val BROWSE = "browse/{id}"
@@ -90,7 +90,9 @@ object Routes {
     const val LIVE_ARTIST = "live/artist/{id}"
     fun liveArtist(id: String) = "live/artist/$id"
     fun detail(id: String) = "detail/$id"
-    fun player(id: String, fileIndex: Int? = null) = "player/$id" + (fileIndex?.let { "?file=$it" } ?: "")
+    /** [fromStart] plays [fileIndex] (default the first file) from 0:00, ignoring saved positions. */
+    fun player(id: String, fileIndex: Int? = null, fromStart: Boolean = false) =
+        "player/$id?file=${fileIndex ?: -1}&start=$fromStart"
     fun section(id: String) = "section/$id"
     fun tiles(id: String) = "tiles/$id"
     fun browse(id: String) = "browse/$id"
@@ -126,8 +128,8 @@ fun AppNavHost(
     val audio = (LocalContext.current.applicationContext as ArchiveTvApp).container.audio
     val scope = rememberCoroutineScope()
     /** Starts an audio item through the background player. */
-    fun playAudio(id: String, index: Int?) {
-        scope.launch { if (audio.play(id, index)) nav.navigate(Routes.NOW_PLAYING) }
+    fun playAudio(id: String, index: Int?, fromStart: Boolean = false) {
+        scope.launch { if (audio.play(id, index, fromStart)) nav.navigate(Routes.NOW_PLAYING) }
     }
     val nowPlaying by audio.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) {
@@ -340,8 +342,13 @@ fun AppNavHost(
                 DetailScreen(
                     identifier = entry.arguments!!.getString("id")!!,
                     onPlay = { id, index -> nav.navigate(Routes.player(id, index)) },
-                    onPlayAudio = ::playAudio,
+                    onPlayAudio = { id, index -> playAudio(id, index) },
+                    onPlayFromStart = { id, isAudio ->
+                        if (isAudio) playAudio(id, 0, fromStart = true)
+                        else nav.navigate(Routes.player(id, 0, fromStart = true))
+                    },
                     onOpenRecording = { nav.navigate(Routes.detail(it)) },
+                    onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
                 )
             }
             composable(
@@ -349,11 +356,13 @@ fun AppNavHost(
                 arguments = listOf(
                     navArgument("id") { type = NavType.StringType },
                     navArgument("file") { type = NavType.IntType; defaultValue = -1 },
+                    navArgument("start") { type = NavType.BoolType; defaultValue = false },
                 ),
             ) { entry ->
                 PlayerScreen(
                     identifier = entry.arguments!!.getString("id")!!,
                     startIndex = entry.arguments!!.getInt("file").takeIf { it >= 0 },
+                    fromStart = entry.arguments!!.getBoolean("start"),
                     onExit = { nav.popBackStack() },
                 )
             }

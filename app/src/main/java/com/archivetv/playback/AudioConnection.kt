@@ -131,8 +131,9 @@ class AudioConnection(
      * starts at that file (resuming it if part-way), else where the listener left off.
      * Returns false when the item has no audio to play.
      */
-    suspend fun play(identifier: String, fileIndex: Int? = null): Boolean {
-        val (entries, start, position) = filesFrom(identifier, fileIndex) ?: return false
+    suspend fun play(identifier: String, fileIndex: Int? = null, fromStart: Boolean = false): Boolean {
+        val (entries, start, saved) = filesFrom(identifier, fileIndex) ?: return false
+        val position = if (fromStart) 0L else saved
         val c = awaitController() ?: return false
         execute(c, QueueOps.play(queue, current(c), entries.drop(start), position))
         return true
