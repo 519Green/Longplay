@@ -42,5 +42,5 @@ data class LiveDocDto(
     @Json(name = "avg_rating") val avgRating: Double? = null,
     @Json(name = "num_reviews") val numReviews: Int? = null,
     val downloads: Int? = null,
-    @StringOrList val collection: List<String> = emptyList(),
+    @StringOrList val creator: List<String> = emptyList(),
 )

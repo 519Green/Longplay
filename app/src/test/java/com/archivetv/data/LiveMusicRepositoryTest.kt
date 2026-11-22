@@ -115,4 +115,32 @@ class LiveMusicRepositoryTest {
         assertThat(repo.searchArtists("  ")).isEmpty()
         assertThat(server.requestCount).isEqualTo(0)
     }
+
+    @Test fun recordingRequestsSkipTheHugeCollectionField() = runTest {
+        respond("")
+        repo.mostPlayed()
+        val url = server.takeRequest().requestUrl!!
+        val fields = url.queryParameterValues("fl[]")
+        assertThat(fields).doesNotContain("collection")
+        assertThat(fields).contains("creator")
+    }
+
+    @Test fun discoveryRowsGroupByCreatorWithoutCollections() = runTest {
+        respond(
+            """{"identifier":"a1","title":"Some Band Live at Hall on 1990-01-01","creator":"Some Band","date":"1990-01-01T00:00:00Z","downloads":9},""" +
+                """{"identifier":"a2","title":"Some Band Live at Hall on 1990-01-01","creator":"Some Band","date":"1990-01-01T00:00:00Z","downloads":5},""" +
+                """{"identifier":"b1","title":"Other Live at Hall on 1990-01-01","creator":"Other","date":"1990-01-01T00:00:00Z"},""" +
+                """{"identifier":"c1","title":"Odd title format","date":"1990-01-01T00:00:00Z"}""",
+        )
+        val concerts = repo.mostPlayed()
+        assertThat(concerts.map { it.artistName }).containsExactly("Some Band", "Other").inOrder()
+        assertThat(concerts.first().recordingCount).isEqualTo(2)
+    }
+
+    @Test fun artistNameComesFromCreator() = runTest {
+        respond("""{"identifier":"x","title":"Odd title","creator":"Tea Leaf Green","date":"2002-11-21T00:00:00Z"}""")
+        val c = repo.concerts("TeaLeafGreen", 2002).single()
+        assertThat(c.artistName).isEqualTo("Tea Leaf Green")
+        assertThat(c.artistId).isEqualTo("TeaLeafGreen")
+    }
 }

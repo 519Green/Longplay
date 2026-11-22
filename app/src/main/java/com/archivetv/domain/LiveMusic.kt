@@ -16,6 +16,7 @@ data class Recording(
     val rating: Double?,
     val reviews: Int,
     val downloads: Int,
+    /** The artist collection id on artist pages; the artist name on discovery and search rows (grouping key only). */
     val artistId: String,
     val artistName: String,
 )
