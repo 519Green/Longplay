@@ -16,7 +16,12 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
@@ -61,12 +66,31 @@ fun ArtistsScreen(onOpenArtist: (String) -> Unit) {
     val gridState = rememberLazyGridState()
     val jumpFocus = remember { FocusRequester() }
     var jumpTarget by remember { mutableStateOf<Int?>(null) }
+    // Bumped on every chip press so pressing the same letter twice jumps again.
+    var jumpSeq by remember { mutableIntStateOf(0) }
+    val chipFocus = remember { mutableMapOf<Char, FocusRequester>() }
+    var lastLetter by rememberSaveable { mutableStateOf<Char?>(null) }
+    var gridHasFocus by remember { mutableStateOf(false) }
+    var initialFocusDone by rememberSaveable { mutableStateOf(false) }
 
-    LaunchedEffect(jumpTarget) {
+    LaunchedEffect(jumpSeq) {
         val target = jumpTarget ?: return@LaunchedEffect
         gridState.scrollToItem(target)
         withFrameNanos { }
         runCatching { jumpFocus.requestFocus() }
+    }
+    // First arrival: focus the letter chips, not the search field, so the
+    // on-screen keyboard does not open over the list.
+    LaunchedEffect(state.letters) {
+        if (!initialFocusDone && state.letters.isNotEmpty()) {
+            withFrameNanos { }
+            initialFocusDone = runCatching { chipFocus.getValue(state.letters.first()).requestFocus() }.isSuccess
+        }
+    }
+    // Back from deep in the grid returns to the letter chips instead of leaving.
+    BackHandler(enabled = gridHasFocus) {
+        val letter = lastLetter?.takeIf { it in state.letters } ?: state.letters.firstOrNull()
+        letter?.let { runCatching { chipFocus.getValue(it).requestFocus() } }
     }
 
     Column(
@@ -82,7 +106,9 @@ fun ArtistsScreen(onOpenArtist: (String) -> Unit) {
             label = { androidx.compose.material3.Text("Find an artist") },
             singleLine = true,
             // Up/Down always leave the field, as on Search, so remote users are not trapped.
-            modifier = Modifier.onPreviewKeyEvent { e ->
+            // Not focusable until the chips have taken first focus: while the list loads
+            // the field would be the only target and would open the keyboard.
+            modifier = Modifier.focusProperties { canFocus = initialFocusDone }.onPreviewKeyEvent { e ->
                 if (e.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
                 when (e.key) {
                     Key.DirectionDown -> focusManager.moveFocus(FocusDirection.Down)
@@ -102,16 +128,26 @@ fun ArtistsScreen(onOpenArtist: (String) -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     items(state.letters, key = { it }) { letter ->
-                        FilterChip(selected = false, onClick = {
-                            val i = viewModel.indexOf(letter)
-                            if (i >= 0) jumpTarget = i
-                        }) { Text(letter.toString()) }
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                val i = viewModel.indexOf(letter)
+                                if (i >= 0) {
+                                    lastLetter = letter
+                                    jumpTarget = i
+                                    jumpSeq++
+                                }
+                            },
+                            modifier = Modifier.focusRequester(chipFocus.getOrPut(letter) { FocusRequester() }),
+                        ) { Text(letter.toString()) }
                     }
                 }
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(4),
                     state = gridState,
-                    modifier = Modifier.focusRestorer(),
+                    modifier = Modifier
+                        .focusRestorer()
+                        .onFocusChanged { gridHasFocus = it.hasFocus },
                     contentPadding = PaddingValues(end = Dimens.OverscanHorizontal, bottom = Dimens.OverscanVertical),
                     horizontalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),
                     verticalArrangement = Arrangement.spacedBy(Dimens.CardSpacing),

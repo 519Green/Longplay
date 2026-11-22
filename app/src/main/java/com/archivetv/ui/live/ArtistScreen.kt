@@ -93,6 +93,11 @@ fun ArtistScreen(artistId: String, onOpenRecording: (String) -> Unit) {
                     }
                 }
             }
+            if (state.yearsFailed) {
+                item(key = "years-retry") {
+                    FilterChip(selected = false, onClick = viewModel::retryYears) { Text("Years unavailable · Retry") }
+                }
+            }
         }
         when (val st = state.concerts) {
             Load.Loading -> Text("Loading concerts…")

@@ -12,7 +12,10 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -63,7 +66,11 @@ fun LiveMusicScreen(
     })
     val rows by viewModel.rows.collectAsStateWithLifecycle()
     val allArtistsFocus = remember { FocusRequester() }
-    LaunchedEffect(Unit) { runCatching { allArtistsFocus.requestFocus() } }
+    // Only on first arrival: coming Back from a concert keeps the card the user left.
+    var initialFocusDone by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        if (!initialFocusDone) initialFocusDone = runCatching { allArtistsFocus.requestFocus() }.isSuccess
+    }
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),

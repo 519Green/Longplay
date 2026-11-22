@@ -19,6 +19,8 @@ data class ArtistUiState(
     val name: String? = null,
     /** Null until the (possibly slow) year list arrives. */
     val years: List<YearCount>? = null,
+    /** The year list failed (it can take seconds for big artists); the page offers a retry. */
+    val yearsFailed: Boolean = false,
     val selectedYear: Int? = null,
     val concerts: Load<List<Concert>> = Load.Loading,
 )
@@ -63,13 +65,21 @@ class ArtistViewModel(
         if (year != null) selectYear(year) else start()
     }
 
+    fun retryYears() {
+        loadYears()
+    }
+
+    private fun loadYears() = viewModelScope.async {
+        _state.update { it.copy(yearsFailed = false) }
+        runCatching { years() }.also { r ->
+            _state.update { s -> r.fold({ s.copy(years = it) }, { s.copy(yearsFailed = true) }) }
+        }
+    }
+
     private fun start() {
         _state.update { it.copy(concerts = Load.Loading) }
         val known = _state.value.years
-        val yearsLoad = if (known != null) CompletableDeferred(Result.success(known))
-            else viewModelScope.async {
-                runCatching { years() }.also { r -> r.onSuccess { list -> _state.update { it.copy(years = list) } } }
-            }
+        val yearsLoad = if (known != null) CompletableDeferred(Result.success(known)) else loadYears()
         viewModelScope.launch {
             val first = runCatching { startYear() }.getOrNull()
             if (first != null) {

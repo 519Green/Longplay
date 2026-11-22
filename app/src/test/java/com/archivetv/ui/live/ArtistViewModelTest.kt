@@ -89,4 +89,15 @@ class ArtistViewModelTest {
         advanceUntilIdle()
         assertThat(vm.state.value.concerts).isEqualTo(Load.Done(listOf(concert("c1978"))))
     }
+
+    @Test fun failedYearsAreReportedAndRetried() = runTest {
+        var calls = 0
+        val vm = ArtistViewModel("SomeBand", { 1977 }, { if (calls++ == 0) error("slow") else listOf(YearCount(1977, 1), YearCount(1978, 2)) }, { listOf(concert("c")) })
+        assertThat(vm.state.value.yearsFailed).isTrue()
+        assertThat(vm.state.value.concerts).isEqualTo(Load.Done(listOf(concert("c"))))
+        vm.retryYears()
+        assertThat(vm.state.value.yearsFailed).isFalse()
+        assertThat(vm.state.value.years).containsExactly(YearCount(1977, 1), YearCount(1978, 2)).inOrder()
+        assertThat(vm.state.value.selectedYear).isEqualTo(1977)
+    }
 }
