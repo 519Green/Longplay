@@ -54,6 +54,7 @@ import com.archivetv.ui.mylist.MyListScreen
 import com.archivetv.ui.player.PlayerScreen
 import com.archivetv.ui.browse.BrowseScreen
 import com.archivetv.ui.search.SearchScreen
+import com.archivetv.ui.live.ArtistsScreen
 import com.archivetv.ui.live.LiveMusicScreen
 import com.archivetv.ui.section.SectionScreen
 import com.archivetv.ui.section.TilesScreen
@@ -271,6 +272,9 @@ fun AppNavHost(
                     onOpenArtist = { nav.navigate(Routes.liveArtist(it)) },
                     onAllArtists = { nav.navigate(Routes.LIVE_ARTISTS) },
                 )
+            }
+            composable(Routes.LIVE_ARTISTS) {
+                ArtistsScreen(onOpenArtist = { nav.navigate(Routes.liveArtist(it)) })
             }
             composable(Routes.TILES, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
                 TilesScreen(
