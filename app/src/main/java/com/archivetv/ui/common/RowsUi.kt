@@ -115,7 +115,7 @@ fun FailedRow(title: String, onRetry: () -> Unit) {
     Column {
         RowHeader(title)
         LazyRow(contentPadding = rowPadding()) {
-            item { LabelCard("Couldn't load this row", subtitle = "Select to retry", onClick = onRetry) }
+            item { LabelCard("Couldn't load this row", subtitle = "Select to retry", onClick = onRetry, focusKey = null) }
         }
     }
 }
@@ -145,8 +145,8 @@ fun LabelCard(
     modifier: Modifier = Modifier,
     subtitle: String? = null,
     width: Dp? = Dimens.CardWidth,
-    /** Unique on the screen; Back from what this tile opens returns focus here. */
-    focusKey: String = label,
+    /** Unique on the screen; Back from what this tile opens returns focus here. Null: not tracked. */
+    focusKey: String? = label,
 ) {
     val target = returnFocusTarget(focusKey)
     Card(

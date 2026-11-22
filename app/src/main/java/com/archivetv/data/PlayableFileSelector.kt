@@ -40,8 +40,9 @@ class PlayableFileSelector {
             .map { (key, group) -> key to group.sortedWith(best).first() }
             .sortedWith(compareBy(NaturalOrder) { it.second.name })
         val captions = captionFiles(identifier, files)
+        // The full caption stem first ("talk.qa" belongs to talk.qa.mp4), then without its tag.
         val byVideo = captions.groupBy { (stems, _) ->
-            videos.firstOrNull { (key, f) -> stems.any { it == key || it == stem(f.name) } }?.first
+            stems.firstNotNullOfOrNull { s -> videos.firstOrNull { (key, f) -> s == key || s == stem(f.name) }?.first }
         }
         return videos.map { (key, f) ->
             // An item with one video owns every caption file, whatever its name.
@@ -74,7 +75,7 @@ class PlayableFileSelector {
             val caption = SubtitleFile(identifier, f.name, language, auto, webVtt = !srt)
             Triple(stems, caption, srt)
         }
-            .groupBy { (stems, c, _) -> Triple(stems.last(), c.language, c.auto) }
+            .groupBy { (stems, c, _) -> Triple(if (c.language == null) stems.first() else stems.last(), c.language, c.auto) }
             .map { (_, same) -> same.maxBy { if (it.third) 1 else 0 } }
             .map { (stems, c, _) -> stems to c }
 

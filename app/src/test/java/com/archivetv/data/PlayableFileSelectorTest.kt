@@ -286,4 +286,16 @@ class PlayableFileSelectorTest {
         val files = listOf(MetadataFileDto(name = "film.mp4", format = "h.264"))
         assertThat(PlayableFileSelector().selectAll("x", files).single().subtitles).isEmpty()
     }
+
+    @Test fun aCaptionGoesToTheVideoWithItsFullName() {
+        val files = listOf(
+            MetadataFileDto(name = "talk.mp4", format = "h.264"),
+            MetadataFileDto(name = "talk.qa.mp4", format = "h.264"),
+            MetadataFileDto(name = "talk.srt", format = "SubRip"),
+            MetadataFileDto(name = "talk.qa.srt", format = "SubRip"),
+        )
+        val byName = PlayableFileSelector().selectAll("x", files).associate { it.fileName to it.subtitles.map { s -> s.fileName } }
+        assertThat(byName["talk.mp4"]).containsExactly("talk.srt")
+        assertThat(byName["talk.qa.mp4"]).containsExactly("talk.qa.srt")
+    }
 }

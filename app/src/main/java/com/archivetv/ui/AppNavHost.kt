@@ -277,6 +277,8 @@ fun AppNavHost(
                 .focusRestorer()
                 .onPreviewKeyEvent { e ->
                     if (e.key == Key.DirectionUp) upHeld = e.type == KeyEventType.KeyDown
+                    // The viewer moved on: a restore still waiting for its card must not pull focus back.
+                    if (e.type == KeyEventType.KeyDown) returnFocus[backStack?.id]?.cancel()
                     false
                 }
         ) {

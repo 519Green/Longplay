@@ -30,4 +30,14 @@ class ReturnFocusTest {
         assertThat(memory.restored).isFalse()
         assertThat(memory.pending).isEqualTo("b")
     }
+
+    @Test fun anEarlierSuccessDoesNotLeakIntoABackWithNothingToRestore() {
+        val memory = ReturnFocus()
+        memory.opened = "a"
+        memory.restore()
+        memory.restored = true
+        // Next Back comes from a screen a button opened: nothing to restore, and no stale success.
+        assertThat(memory.restore()).isFalse()
+        assertThat(memory.restored).isFalse()
+    }
 }

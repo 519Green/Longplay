@@ -181,7 +181,10 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
     }
 
     // Back first hides the controls (research spec 2.8); with them hidden it leaves.
-    BackHandler(enabled = failure == null && controlsVisible) { playerView?.hideController() }
+    BackHandler(enabled = failure == null && controlsVisible) {
+        // The flag can lag the view (a new view after Retry starts hidden without a callback).
+        if (playerView?.isControllerFullyVisible == true) playerView?.hideController() else onExit()
+    }
 
     val multiFile = files.size > 1
     val hasCaptions = files.any { it.subtitles.isNotEmpty() }
@@ -210,7 +213,10 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
                     subtitleView?.setUserDefaultStyle()
                     subtitleView?.setUserDefaultTextSize()
                     setControllerVisibilityListener(
-                        PlayerView.ControllerVisibilityListener { v -> controlsVisible = v == View.VISIBLE },
+                        PlayerView.ControllerVisibilityListener { v ->
+                            controlsVisible = v == View.VISIBLE
+                            controlsShowing = controlsVisible
+                        },
                     )
                     onSeek = { forward ->
                         val p = controller.player
@@ -231,6 +237,8 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
             onRelease = { view ->
                 view.player = null
                 playerView = null
+                // A detached view never reports its controls hidden.
+                controlsVisible = false
             },
         )
         AnimatedVisibility(
@@ -343,6 +351,9 @@ private fun PlayerError(failure: PlayerFailure, onBack: () -> Unit) {
 private class TvPlayerView(context: Context) : PlayerView(context) {
     var onSeek: ((forward: Boolean) -> Unit)? = null
 
+    /** True from the moment the controls start to show, before their animation ends. */
+    var controlsShowing = false
+
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val forward = when (event.keyCode) {
             KeyEvent.KEYCODE_DPAD_RIGHT -> true
@@ -350,7 +361,9 @@ private class TvPlayerView(context: Context) : PlayerView(context) {
             else -> null
         }
         val p = player
-        if (forward == null || p == null || isControllerFullyVisible) return super.dispatchKeyEvent(event)
+        if (forward == null || p == null || isControllerFullyVisible || controlsShowing) {
+            return super.dispatchKeyEvent(event)
+        }
         if (event.action == KeyEvent.ACTION_DOWN) {
             if (forward) p.seekForward() else p.seekBack()
             onSeek?.invoke(forward)

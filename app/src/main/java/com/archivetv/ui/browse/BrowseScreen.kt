@@ -134,7 +134,7 @@ fun BrowseScreen(
                 )
             }
             state.error?.let { message ->
-                item(key = "error") { LabelCard(message, onClick = viewModel::retry, width = null) }
+                item(key = "error") { LabelCard(message, onClick = viewModel::retry, width = null, focusKey = null) }
             }
         }
         if (state.total == 0) {

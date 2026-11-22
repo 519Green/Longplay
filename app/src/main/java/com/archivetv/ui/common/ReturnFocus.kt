@@ -34,9 +34,10 @@ class ReturnFocus {
 
     /** Asks the element that opened the screen above to take focus; false when there is none. */
     fun restore(): Boolean {
+        // Reset first: a result left over from an earlier Back must not skip the fallback.
+        restored = false
         val key = opened ?: return false
         opened = null
-        restored = false
         pending = key
         return true
     }
@@ -56,10 +57,11 @@ class ReturnTarget(val modifier: Modifier, val opened: () -> Unit)
 /**
  * Lets the element with [key] get focus back after Back. [key] must be unique
  * on the screen: rows that can share an item prefix it with the row title.
+ * A null key opts out (retry cards, which do not open another screen).
  */
 @Composable
-fun returnFocusTarget(key: String): ReturnTarget {
-    val memory = LocalReturnFocus.current
+fun returnFocusTarget(key: String?): ReturnTarget {
+    val memory = LocalReturnFocus.current.takeIf { key != null }
     val requester = remember { FocusRequester() }
     var focused by remember { mutableStateOf(false) }
     if (memory != null && memory.pending == key) {
