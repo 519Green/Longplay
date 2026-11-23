@@ -247,4 +247,53 @@ class CatalogLoaderTest {
         assertThat(catalog.home.map { it.id }).contains("edu-popular")
         assertThat(catalog.home.map { it.id }).doesNotContain("studio-coronet")
     }
+
+    private fun withSeasonal(seasonal: String) = """
+    { "version": 2, "sections": [
+      { "id": "movies", "title": "Movies", "children": [
+        { "id": "a", "title": "A", "query": { "collections": ["colA"] } }
+      ]}
+    ], "seasonal": [ $seasonal ] }
+    """
+
+    @Test fun parsesSeasonalEntries() {
+        val catalog = loader.parse(
+            withSeasonal(
+                """
+                { "id": "winter", "title": "Winter", "from": "12-26", "to": "01-06",
+                  "query": { "collections": ["colA"], "subjectAny": ["snow"] } },
+                { "id": "spring", "title": "Spring", "easter": [-7, 1], "query": { "subjectAny": ["eggs"] } }
+                """,
+            ),
+        )
+        assertThat(catalog.seasonal).containsExactly(
+            com.archivetv.domain.SeasonalEntry(
+                "winter", "Winter",
+                com.archivetv.domain.SeasonWindow.Dates(java.time.MonthDay.of(12, 26), java.time.MonthDay.of(1, 6)),
+                com.archivetv.domain.CategoryQuery(collections = listOf("colA"), subjectAny = listOf("snow")),
+            ),
+            com.archivetv.domain.SeasonalEntry(
+                "spring", "Spring", com.archivetv.domain.SeasonWindow.Easter(-7, 1),
+                com.archivetv.domain.CategoryQuery(subjectAny = listOf("eggs")),
+            ),
+        ).inOrder()
+    }
+
+    @Test fun rejectsBadWindow() {
+        listOf(
+            """{ "id": "x", "title": "X", "from": "13-40", "to": "01-06", "query": { "subjectAny": ["a"] } }""",
+            """{ "id": "x", "title": "X", "from": "12-01", "query": { "subjectAny": ["a"] } }""",
+            """{ "id": "x", "title": "X", "easter": [1], "query": { "subjectAny": ["a"] } }""",
+            """{ "id": "x", "title": "X", "from": "12-01", "to": "12-31", "easter": [0, 1], "query": { "subjectAny": ["a"] } }""",
+        ).forEach { bad ->
+            org.junit.Assert.assertThrows(IllegalArgumentException::class.java) { loader.parse(withSeasonal(bad)) }
+        }
+    }
+
+    @Test fun bundledConfigHasFiveSeasons() {
+        val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
+        assertThat(catalog.seasonal.map { it.title })
+            .containsExactly("Christmas", "Halloween", "Thanksgiving", "Easter", "New Year").inOrder()
+    }
 }
+

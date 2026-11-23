@@ -6,6 +6,11 @@ import com.archivetv.domain.CategoryQuery
 import com.archivetv.domain.DeriveRule
 import com.archivetv.domain.Facet
 import com.archivetv.domain.FacetGroup
+import com.archivetv.domain.SeasonWindow
+import com.archivetv.domain.SeasonalEntry
+import java.time.MonthDay
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 
@@ -14,6 +19,17 @@ data class CatalogDto(
     val home: List<String> = emptyList(),
     val sections: List<NodeDto> = emptyList(),
     val facetGroups: Map<String, FacetGroupDto> = emptyMap(),
+    val seasonal: List<SeasonalDto> = emptyList(),
+)
+
+/** A seasonal Home row: either `from`/`to` ("MM-DD") or `easter` ([startOffsetDays, endOffsetDays]). */
+data class SeasonalDto(
+    val id: String,
+    val title: String,
+    val from: String? = null,
+    val to: String? = null,
+    val easter: List<Int>? = null,
+    val query: QueryDto,
 )
 
 data class NodeDto(
@@ -99,7 +115,30 @@ class CatalogLoader {
         val home = dto.home.map { id ->
             requireNotNull(catalog.leaf(id)) { "home id $id is not a leaf" }
         }
-        return catalog.copy(home = home)
+        val seasonal = dto.seasonal.map { s ->
+            require(seen.add(s.id)) { "duplicate id ${s.id}" }
+            SeasonalEntry(s.id, s.title, s.window(), s.query.toDomain())
+        }
+        return catalog.copy(home = home, seasonal = seasonal)
+    }
+
+    private val monthDay = DateTimeFormatter.ofPattern("MM-dd")
+
+    private fun SeasonalDto.window(): SeasonWindow {
+        val dates = from != null || to != null
+        require(dates != (easter != null)) { "$id: a seasonal entry needs either from/to or easter" }
+        if (easter != null) {
+            require(easter.size == 2) { "$id: easter needs [startOffsetDays, endOffsetDays]" }
+            return SeasonWindow.Easter(easter[0], easter[1])
+        }
+        require(from != null && to != null) { "$id: from and to go together" }
+        return SeasonWindow.Dates(parseMonthDay(from), parseMonthDay(to))
+    }
+
+    private fun parseMonthDay(text: String): MonthDay = try {
+        MonthDay.parse(text, monthDay)
+    } catch (e: DateTimeParseException) {
+        throw IllegalArgumentException("bad month-day $text", e)
     }
 
     private val mediatypes = setOf("movies", "audio")

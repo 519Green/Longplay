@@ -60,6 +60,8 @@ data class Catalog(
     /** Leaves shown as rows on Home, in order. */
     val home: List<CategoryNode.Leaf>,
     val facetGroups: Map<String, FacetGroup>,
+    /** Calendar-driven Home rows, in config order. */
+    val seasonal: List<SeasonalEntry> = emptyList(),
 ) {
     private val index: Map<String, CategoryNode> = buildMap {
         fun walk(n: CategoryNode) {
