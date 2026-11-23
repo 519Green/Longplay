@@ -88,6 +88,9 @@ class AppContainer(app: Application) {
     /** Wrong-PIN lockout, shared by every PIN prompt for the life of the app. */
     val pinGate = PinGate()
 
+    /** The first-run PIN prompt was shown in this process; "Not now" asks again on the next launch. */
+    var pinPromptShown = false
+
     suspend fun clearSessionCaches() {
         derivedGroups.clearCache()
         liveMusic.clearCache()

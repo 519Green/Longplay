@@ -53,15 +53,36 @@ private enum class Step { CURRENT, NEW, CONFIRM }
  */
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun PinDialog(mode: PinMode, gate: PinGate, settings: AppSettings, onDone: (Boolean) -> Unit) {
+fun PinDialog(
+    mode: PinMode,
+    gate: PinGate,
+    settings: AppSettings,
+    /** Replaces the first step's title (the first-run prompt says "Set a parental PIN"). */
+    firstTitle: String? = null,
+    /** One line under the title explaining why the PIN is asked for. */
+    intro: String? = null,
+    /** Adds a button that closes the dialog without a PIN ("Not now"). */
+    dismissLabel: String? = null,
+    onDone: (Boolean) -> Unit,
+) {
     var step by remember { mutableStateOf(if (mode == PinMode.SET) Step.NEW else Step.CURRENT) }
     var digits by remember { mutableStateOf("") }
     var firstPin by remember { mutableStateOf("") }
     var message by remember { mutableStateOf<String?>(null) }
     var lockedMs by remember { mutableLongStateOf(gate.lockedForMs()) }
+    var showForgot by remember { mutableStateOf(false) }
+    val firstStep = if (mode == PinMode.SET) Step.NEW else Step.CURRENT
     val firstKey = remember { FocusRequester() }
 
     LaunchedEffect(Unit) {
+        repeat(10) {
+            if (runCatching { firstKey.requestFocus() }.isSuccess) return@LaunchedEffect
+            delay(50)
+        }
+    }
+    // "Forgot PIN?" replaces itself with text; focus would otherwise fall out of the dialog.
+    LaunchedEffect(showForgot) {
+        if (!showForgot) return@LaunchedEffect
         repeat(10) {
             if (runCatching { firstKey.requestFocus() }.isSuccess) return@LaunchedEffect
             delay(50)
@@ -112,10 +133,11 @@ fun PinDialog(mode: PinMode, gate: PinGate, settings: AppSettings, onDone: (Bool
         }
     }
 
-    val title = when (step) {
-        Step.CURRENT -> if (mode == PinMode.CHANGE) "Enter current PIN" else "Enter PIN"
-        Step.NEW -> if (mode == PinMode.CHANGE) "New PIN" else "Set a PIN"
-        Step.CONFIRM -> "Enter the PIN again"
+    val title = when {
+        step == firstStep && firstTitle != null -> firstTitle
+        step == Step.CURRENT -> if (mode == PinMode.CHANGE) "Enter current PIN" else "Enter PIN"
+        step == Step.NEW -> if (mode == PinMode.CHANGE) "New PIN" else "Set a PIN"
+        else -> "Enter the PIN again"
     }
     val note = if (lockedMs > 0 && step == Step.CURRENT) "Too many tries. Wait ${(lockedMs + 999) / 1000} s." else message
 
@@ -157,6 +179,9 @@ fun PinDialog(mode: PinMode, gate: PinGate, settings: AppSettings, onDone: (Bool
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text(title, style = MaterialTheme.typography.headlineSmall, color = Color.White)
+            intro?.let {
+                Text(it, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.8f))
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                 repeat(4) { i ->
                     val filled = i < digits.length
@@ -193,6 +218,20 @@ fun PinDialog(mode: PinMode, gate: PinGate, settings: AppSettings, onDone: (Bool
                     }
                 }
             }
+            // Recovery is offered only where the PIN is asked for, not on the Settings screen.
+            if (step == Step.CURRENT) {
+                if (showForgot) {
+                    Text(
+                        "Clear Longplay's storage in the TV's app settings, then set a new PIN.\n" +
+                            "This also clears My List and your progress.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.White.copy(alpha = 0.8f),
+                    )
+                } else {
+                    Button(onClick = { showForgot = true }) { Text("Forgot PIN?") }
+                }
+            }
+            dismissLabel?.let { label -> Button(onClick = { onDone(false) }) { Text(label) } }
         }
     }
 }

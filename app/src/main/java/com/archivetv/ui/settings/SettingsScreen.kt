@@ -94,13 +94,6 @@ fun SettingsScreen(settings: AppSettings, pinGate: PinGate) {
                 supportingContent = { Text("The PIN is needed to turn either filter off.") },
                 modifier = Modifier.widthIn(max = 720.dp).focusRequester(pinFocus),
             )
-            Text(
-                "Forgot the PIN? Clear Longplay's storage in the TV's app settings. " +
-                    "This also clears My List and your progress.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.widthIn(max = 720.dp).padding(start = 16.dp),
-            )
         }
         request?.let { r ->
             PinDialog(mode = r.mode, gate = pinGate, settings = settings) { ok ->
