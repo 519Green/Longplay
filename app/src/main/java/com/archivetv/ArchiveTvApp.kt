@@ -61,7 +61,9 @@ class AppContainer(app: Application) {
 
     val queryBuilder = SearchQueryBuilder()
 
-    val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder, lookupService = rawService)
+    val archiveRepository = ArchiveRepository(service, PlayableFileSelector(), queryBuilder, lookupService = rawService,
+        hideAdult = { settings.hideAdult.value },
+    )
     val liveMusic = LiveMusicRepository(service, rawService) { settings.openOnly.value }
     val derivedGroups = DerivedGroups(service, rawService) { settings.openOnly.value }
     val libraryRepository = LibraryRepository(db.favoriteDao(), db.resumeDao())

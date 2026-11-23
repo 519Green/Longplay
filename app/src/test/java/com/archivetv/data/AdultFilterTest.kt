@@ -71,4 +71,35 @@ class AdultFilterTest {
         assertThat(filtered.queries).isEmpty()
         assertThat(repo.flaggedIds(emptyList())).isEmpty()
     }
+
+    @Test fun flaggedIdsAsksInChunks() = runTest {
+        val lookup = FakeArchiveService(searchDocs = { emptyList() })
+        val repo = ArchiveRepository(FakeArchiveService(), PlayableFileSelector(), SearchQueryBuilder(), lookupService = lookup)
+        repo.flaggedIds((1..120).map { "id$it" })
+        assertThat(lookup.queries).hasSize(3)
+        assertThat(lookup.queries.first().split(" OR ")).hasSize(50)
+    }
+
+    private fun metaWith(subject: String) = com.archivetv.data.api.MetadataResponseDto(
+        metadata = com.archivetv.data.api.MetadataBodyDto(title = listOf("Example"), subject = listOf(subject)),
+    )
+
+    @Test fun detailRefusesAFlaggedItemWhileTheFilterIsOn() = runTest {
+        var on = true
+        val inner = FakeArchiveService(meta = { metaWith("porn") })
+        val repo = ArchiveRepository(inner, PlayableFileSelector(), SearchQueryBuilder(), hideAdult = { on })
+        val blocked = runCatching { repo.detail("flagged") }.exceptionOrNull()
+        assertThat(blocked).isInstanceOf(HiddenByParentalFilter::class.java)
+        on = false
+        assertThat(repo.detail("flagged").item.title).isEqualTo("Example")
+    }
+
+    @Test fun detailOpensAnUnflaggedItem() = runTest {
+        val repo = ArchiveRepository(
+            FakeArchiveService(meta = { metaWith("adult education") }), PlayableFileSelector(), SearchQueryBuilder(),
+            hideAdult = { true },
+        )
+        assertThat(repo.detail("plain").item.title).isEqualTo("Example")
+    }
 }
+

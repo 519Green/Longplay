@@ -17,6 +17,7 @@ class FakeArchiveService(
     private val searchDocs: (String) -> List<SearchDocDto> = { emptyList() },
     private val liveDocs: (String) -> List<LiveDocDto> = { emptyList() },
     private val fieldDocs: (String) -> List<FieldDocDto> = { emptyList() },
+    private val meta: (String) -> MetadataResponseDto = { MetadataResponseDto() },
 ) : InternetArchiveService {
     val queries = mutableListOf<String>()
 
@@ -38,5 +39,5 @@ class FakeArchiveService(
         return FieldsResponseDto(FieldsBodyDto(docs.size, docs))
     }
 
-    override suspend fun metadata(identifier: String): MetadataResponseDto = MetadataResponseDto()
+    override suspend fun metadata(identifier: String): MetadataResponseDto = meta(identifier)
 }

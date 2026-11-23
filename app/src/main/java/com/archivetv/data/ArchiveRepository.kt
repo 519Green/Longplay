@@ -2,6 +2,7 @@ package com.archivetv.data
 
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.SearchDocDto
+import com.archivetv.domain.AdultMeta
 import com.archivetv.domain.AdultRule
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.ItemFacts
@@ -44,6 +45,8 @@ class ArchiveRepository(
     private val queryBuilder: SearchQueryBuilder,
     /** Unfiltered: saved items (Continue Watching, My List) keep their titles whatever the rights setting. */
     private val lookupService: InternetArchiveService = service,
+    /** The parental filter: [detail] refuses flagged items while it is on. */
+    private val hideAdult: () -> Boolean = { false },
 ) {
     /** One page of a rendered catalog query (pages start at 1). */
     suspend fun browse(query: String, sort: BrowseSort, page: Int, rows: Int): BrowsePage {
@@ -87,12 +90,13 @@ class ArchiveRepository(
 
     /** Looks up titles and years for known identifiers in one request. */
     /** Saved identifiers whose own metadata marks them adult ([AdultRule]); unfiltered lookup, one request. */
-    suspend fun flaggedIds(ids: List<String>): Set<String> {
-        if (ids.isEmpty()) return emptySet()
-        return lookupService.search(query = identifierQuery(ids), rows = ids.size, sort = "downloads desc")
-            .response.docs.filter { AdultRule.isAdult(it.adultMeta()) }
-            .mapTo(HashSet()) { it.identifier }
-    }
+    suspend fun flaggedIds(ids: List<String>): Set<String> =
+        // Chunked: a long My List in one identifier query would make an oversized URL.
+        ids.distinct().chunked(LOOKUP_CHUNK).flatMapTo(HashSet()) { chunk ->
+            lookupService.search(query = identifierQuery(chunk), rows = chunk.size, sort = "downloads desc")
+                .response.docs.filter { AdultRule.isAdult(it.adultMeta()) }
+                .map { it.identifier }
+        }
 
     private fun identifierQuery(ids: List<String>) =
         ids.joinToString(" OR ", prefix = "identifier:(", postfix = ")") { "\"" + it.replace("\"", "") + "\"" }
@@ -107,6 +111,11 @@ class ArchiveRepository(
     suspend fun detail(identifier: String): ItemDetail {
         val dto = service.metadata(identifier)
         val meta = dto.metadata
+        // Every way into a title (Detail, the player, audio, the hero) loads it here, so a flagged item stays
+        // closed even when it is still on screen (a saved row filled while offline, a restored queue).
+        if (meta != null && hideAdult() && AdultRule.isAdult(AdultMeta(meta.adult, meta.nsfw, meta.rating, meta.subject))) {
+            throw HiddenByParentalFilter()
+        }
         val description = meta?.description.orEmpty()
             .map(HtmlText::toPlain)
             .filter { it.isNotBlank() }
@@ -173,3 +182,12 @@ class ArchiveRepository(
     private fun cleanTitle(titles: List<String>, identifier: String): String =
         titles.map(HtmlText::toPlain).firstOrNull { it.isNotBlank() } ?: identifier
 }
+
+/** Saved-item identifier lookups ask for at most this many identifiers per request. */
+private const val LOOKUP_CHUNK = 50
+
+/** Thrown by [ArchiveRepository.detail] for an item the parental filter hides. */
+class HiddenByParentalFilter : Exception("Hidden by the parental filter")
+
+/** What Detail and the player say when the parental filter blocks a title. */
+const val PARENTAL_BLOCK_TEXT = "Hidden by the parental filter. Turn it off in Settings to open this title."

@@ -35,7 +35,7 @@ class AdultRuleTest {
         // Phrases measured on live licensed uploads (2026-11-22) that name a kind of adult content.
         listOf("erotic film", "erotic films", "adult film", "adult films", "adult movie", "adult animation",
             "adult cartoon", "adult anime").forEach { assertThat(adult(AdultMeta(subjects = listOf(it)))).isTrue() }
-        listOf("adult swim", "adult learners", "adult learning").forEach {
+        listOf("adult literacy", "adult learners", "adult learning").forEach {
             assertThat(adult(AdultMeta(subjects = listOf(it)))).isFalse()
         }
     }

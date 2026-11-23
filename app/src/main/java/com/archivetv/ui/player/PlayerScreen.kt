@@ -145,6 +145,9 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
             app.container.archiveRepository.detail(identifier)
         } catch (e: CancellationException) {
             throw e
+        } catch (e: com.archivetv.data.HiddenByParentalFilter) {
+            failure = PlayerFailure(com.archivetv.data.PARENTAL_BLOCK_TEXT, retry = null)
+            return@LaunchedEffect
         } catch (e: Exception) {
             null
         }
