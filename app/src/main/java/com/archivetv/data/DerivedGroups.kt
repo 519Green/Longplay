@@ -15,8 +15,14 @@ import kotlinx.coroutines.sync.withLock
 /**
  * Builds derived catalog groups live from IA metadata. Each group is fetched
  * once per app session; a failed load is not kept, so a retry fetches again.
+ * [service] is the rights-filtered service. Sub-collection records carry no license, so they are listed from
+ * [raw]; when [openOnly] is on, only sub-collections holding at least one passing item are kept.
  */
-class DerivedGroups(private val service: InternetArchiveService) {
+class DerivedGroups(
+    private val service: InternetArchiveService,
+    private val raw: InternetArchiveService = service,
+    private val openOnly: () -> Boolean = { false },
+) {
     private val builder = SearchQueryBuilder()
     private val lock = Mutex()
     private val cache = mutableMapOf<String, List<DerivedEntry>>()
@@ -24,6 +30,9 @@ class DerivedGroups(private val service: InternetArchiveService) {
     suspend fun entries(node: CategoryNode.Derived): List<DerivedEntry> = lock.withLock {
         cache[node.id] ?: load(node.rule).also { cache[node.id] = it }
     }
+
+    /** Drops every cached group, so the next calls fetch again (after the rights setting changes). */
+    suspend fun clearCache() = lock.withLock { cache.clear() }
 
     suspend fun entry(node: CategoryNode.Derived, key: String): DerivedEntry? =
         entries(node).firstOrNull { it.key == key }
@@ -44,8 +53,17 @@ class DerivedGroups(private val service: InternetArchiveService) {
             valueEntries(values, rule)
         }
         is DeriveRule.Subcollections -> {
-            val query = "${builder.anyOf(listOf(rule.parent))} AND mediatype:collection"
-            val docs = fetch(query, listOf("identifier", "title", "downloads"), rule.limit * 2)
+            val parent = builder.anyOf(listOf(rule.parent))
+            val open = openOnly()
+            val listed = raw.searchFields(
+                "$parent AND mediatype:collection", listOf("identifier", "title", "downloads"),
+                rows = rule.limit * if (open) 10 else 2, sort = "downloads desc",
+            ).response.docs
+            val docs = if (!open) listed else {
+                val passing = fetch("$parent AND NOT mediatype:collection", listOf("collection"), 5000)
+                    .flatMapTo(HashSet()) { it.collection }
+                listed.filter { it.identifier in passing }
+            }
             subcollectionEntries(
                 docs.mapNotNull { d ->
                     d.identifier?.let { id ->

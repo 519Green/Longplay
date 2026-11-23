@@ -41,6 +41,8 @@ class ArchiveRepository(
     private val service: InternetArchiveService,
     private val fileSelector: PlayableFileSelector,
     private val queryBuilder: SearchQueryBuilder,
+    /** Unfiltered: saved items (Continue Watching, My List) keep their titles whatever the rights setting. */
+    private val lookupService: InternetArchiveService = service,
 ) {
     /** One page of a rendered catalog query (pages start at 1). */
     suspend fun browse(query: String, sort: BrowseSort, page: Int, rows: Int): BrowsePage {
@@ -88,7 +90,7 @@ class ArchiveRepository(
         val query = ids.joinToString(" OR ", prefix = "identifier:(", postfix = ")") {
             "\"" + it.replace("\"", "") + "\""
         }
-        return service.search(query = query, rows = ids.size, sort = "downloads desc")
+        return lookupService.search(query = query, rows = ids.size, sort = "downloads desc")
             .response.docs.map { it.toItem() }
             .associateBy { it.identifier }
     }
