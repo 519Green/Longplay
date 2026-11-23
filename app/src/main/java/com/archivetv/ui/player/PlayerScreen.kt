@@ -208,6 +208,7 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
                 positionMs = p.currentPosition.coerceAtLeast(0L),
                 durationMs = controller.durationMs(),
                 isPlaying = p.isPlaying,
+                showPause = showsPause(p.playWhenReady, p.playbackState),
                 buttons = barButtons(files.size, controller.captionLabels().size),
             )
             delay(250)
@@ -248,11 +249,10 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
 
     fun act(action: KeyAction, keyCode: Int) {
         val p = controller.player
-        val mediaKey = KeyEvent.isMediaSessionKey(keyCode)
         when (action) {
             KeyAction.SEEK_BACK, KeyAction.SEEK_FORWARD -> {
                 seek(action == KeyAction.SEEK_FORWARD)
-                if (mediaKey) showBar(focusPlay = false) else if (barVisible) lastKeyAt++
+                if (seekKeyShowsBar(keyCode)) showBar(focusPlay = false) else if (barVisible) lastKeyAt++
             }
             KeyAction.PLAY_PAUSE -> {
                 if (p.playWhenReady && p.playbackState != Player.STATE_ENDED) p.pause() else p.play()
@@ -283,7 +283,13 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
             .focusRequester(rootFocus)
             .onPreviewKeyEvent { e ->
                 val code = e.key.nativeKeyCode
-                if (failure != null) return@onPreviewKeyEvent false
+                if (failure != null) {
+                    // The error panel's buttons sit in this focusable box; Compose would spend the
+                    // first Back on moving focus to it. Leave on the first press instead.
+                    if (code != KeyEvent.KEYCODE_BACK) return@onPreviewKeyEvent false
+                    if (e.type == KeyEventType.KeyUp) onExit()
+                    return@onPreviewKeyEvent true
+                }
                 // Taken here because Compose spends an unhandled Back on clearing focus, which
                 // swallowed the first press. Acted on at key-up, so the release cannot reach the
                 // screen underneath once the player has left.

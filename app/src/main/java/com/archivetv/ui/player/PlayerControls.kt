@@ -39,7 +39,15 @@ import com.archivetv.ui.theme.Dimens
 import com.archivetv.ui.theme.PlayerIcons
 
 /** What the control bar shows. */
-data class BarState(val positionMs: Long, val durationMs: Long, val isPlaying: Boolean, val buttons: BarButtons)
+data class BarState(
+    val positionMs: Long,
+    val durationMs: Long,
+    /** The picture is moving (drives auto-hide). */
+    val isPlaying: Boolean,
+    val buttons: BarButtons,
+    /** The button offers Pause: see [showsPause]. */
+    val showPause: Boolean = isPlaying,
+)
 
 /**
  * The player's control bar, built for the D-pad: a seek bar (one focusable element; the screen seeks
@@ -77,8 +85,8 @@ fun PlayerControls(
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             IconButton(onClick = onPlayPause, modifier = Modifier.focusRequester(playPauseFocus)) {
                 Icon(
-                    if (state.isPlaying) PlayerIcons.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (state.isPlaying) "Pause" else "Play",
+                    if (state.showPause) PlayerIcons.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (state.showPause) "Pause" else "Play",
                 )
             }
             if (state.buttons.prevNext) {

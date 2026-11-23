@@ -10,7 +10,7 @@ enum class KeyAction { SEEK_BACK, SEEK_FORWARD, SHOW_BAR, PLAY_PAUSE, PLAY, PAUS
  * Key rules for the control bar:
  * - media keys always act, whether or not the bar shows;
  * - Left/Right seek while the bar is hidden or the seek bar has focus, otherwise they move focus;
- * - any other key on a hidden bar only shows it;
+ * - Up, Down and OK on a hidden bar only show it; other keys pass through;
  * - Back closes the caption list, then the bar, then the player.
  */
 fun keyAction(keyCode: Int, barVisible: Boolean, seekBarFocused: Boolean, captionsOpen: Boolean): KeyAction {
@@ -33,7 +33,14 @@ fun keyAction(keyCode: Int, barVisible: Boolean, seekBarFocused: Boolean, captio
         if (barVisible && !seekBarFocused) return KeyAction.PASS
         return if (keyCode == KeyEvent.KEYCODE_DPAD_LEFT) KeyAction.SEEK_BACK else KeyAction.SEEK_FORWARD
     }
-    return if (barVisible) KeyAction.PASS else KeyAction.SHOW_BAR
+    if (barVisible) return KeyAction.PASS
+    // Only navigation keys open the bar; search, volume and the like keep their own jobs.
+    return when (keyCode) {
+        KeyEvent.KEYCODE_DPAD_UP, KeyEvent.KEYCODE_DPAD_DOWN, KeyEvent.KEYCODE_DPAD_CENTER,
+        KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_NUMPAD_ENTER,
+        -> KeyAction.SHOW_BAR
+        else -> KeyAction.PASS
+    }
 }
 
 /** The bar hides on its own only while the picture is actually moving. */
@@ -42,3 +49,16 @@ fun autoHides(isPlaying: Boolean, playbackState: Int): Boolean = isPlaying && pl
 data class BarButtons(val prevNext: Boolean, val captions: Boolean)
 
 fun barButtons(fileCount: Int, textTrackCount: Int) = BarButtons(prevNext = fileCount > 1, captions = textTrackCount > 0)
+
+/** Fast-forward and rewind are media keys and also show the bar; Left/Right seek quietly. */
+fun seekKeyShowsBar(keyCode: Int): Boolean =
+    keyCode == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD || keyCode == KeyEvent.KEYCODE_MEDIA_REWIND
+
+/** The button offers Pause whenever pressing it would pause, including while a stream buffers. */
+fun showsPause(playWhenReady: Boolean, playbackState: Int): Boolean =
+    playWhenReady && playbackState != Player.STATE_ENDED
+
+private val videoSessions = java.util.concurrent.atomic.AtomicInteger()
+
+/** Media3 needs a unique session id; an outgoing player can still hold its session during a transition. */
+fun nextVideoSessionId(): String = "video-${videoSessions.incrementAndGet()}"

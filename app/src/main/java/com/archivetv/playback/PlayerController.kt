@@ -14,6 +14,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.session.MediaSession
 import com.archivetv.domain.PlayableFile
+import com.archivetv.ui.player.nextVideoSessionId
 
 @OptIn(UnstableApi::class)
 class PlayerController(context: Context) {
@@ -27,7 +28,7 @@ class PlayerController(context: Context) {
      * The video's own media session, so the remote's media keys reach the video and not the
      * background audio session (which is paused while a video plays). Released with the player.
      */
-    val session: MediaSession = MediaSession.Builder(context, player).setId("video").build()
+    val session: MediaSession = MediaSession.Builder(context, player).setId(nextVideoSessionId()).build()
 
     /** Called when playback moves past a file on its own (it played to the end). */
     var onFileCompleted: ((index: Int) -> Unit)? = null
