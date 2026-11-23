@@ -45,15 +45,30 @@ fun rowPadding(start: Dp = Dimens.ContentStart) = PaddingValues(
     bottom = Dimens.RowFocusRoom,
 )
 
+/**
+ * Rows worth showing. A row with a minimum ([BrowseRow.minItems] above 1, the seasonal rows) is a bonus: it shows
+ * only once loaded with at least that many items, never as a placeholder or a retry card.
+ */
+fun visibleRows(rows: List<ContentRow>): List<ContentRow> = rows.filter(::isVisible)
+
+private fun isVisible(row: ContentRow): Boolean {
+    if (row.config.minItems <= 1) return true
+    val st = row.state
+    return st is RowState.Loaded && st.items.size >= row.config.minItems
+}
+
 /** One row per [ContentRow]; Loading shows placeholders, Failed a retry card. */
 fun LazyListScope.contentRows(
     rows: List<ContentRow>,
     onItemClick: (ArchiveItem) -> Unit,
     onRetry: (Int) -> Unit,
     onSeeAll: ((ContentRow) -> Unit)? = null,
+    keyPrefix: String = "row-",
 ) {
     rows.forEachIndexed { index, row ->
-        item(key = "row-${row.config.id}") {
+        // Filtered here rather than up front so onRetry keeps the row's index in [rows].
+        if (!isVisible(row)) return@forEachIndexed
+        item(key = "$keyPrefix${row.config.id}") {
             when (val st = row.state) {
                 RowState.Loading -> PlaceholderRow(row.config.title)
                 RowState.Failed -> FailedRow(row.config.title, onRetry = { onRetry(index) })

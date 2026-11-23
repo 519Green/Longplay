@@ -37,6 +37,8 @@ data class HomeUiState(
     val continueListening: List<NextUpCard> = emptyList(),
     val favorites: List<ArchiveItem> = emptyList(),
     val rows: List<ContentRow> = emptyList(),
+    /** Calendar rows (Christmas, Halloween...), shown after Next Up; not part of the hero. */
+    val seasonal: List<ContentRow> = emptyList(),
     /** Up to [HERO_SLIDES] playable items from the top of the first loaded row, in row order. */
     val heroSlides: List<HeroSlide> = emptyList(),
 )
@@ -62,8 +64,10 @@ class HomeViewModel(
     private val heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
     /** Saved identifiers the parental filter hides; see [com.archivetv.data.SavedFilter]. */
     private val hiddenIds: suspend (List<String>) -> Set<String> = { emptySet() },
+    seasonalRows: List<BrowseRow> = emptyList(),
 ) : ViewModel() {
     private val rows = ParallelRows(viewModelScope, configuredRows, loadRow)
+    private val seasons = ParallelRows(viewModelScope, seasonalRows, loadRow)
 
     private val _state = MutableStateFlow(HomeUiState(rows = rows.state.value))
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
@@ -124,7 +128,11 @@ class HomeViewModel(
                 updateHero(list)
             }
         }
+        viewModelScope.launch {
+            seasons.state.collect { list -> _state.update { it.copy(seasonal = list) } }
+        }
         rows.start()
+        seasons.start()
     }
 
     fun retry(index: Int) = rows.retry(index)

@@ -103,6 +103,7 @@ fun HomeScreen(
         nextUp = state.nextUp,
         onPlayFile = onPlayFile,
         continueListening = state.continueListening,
+        seasonal = state.seasonal,
         onListen = onListen,
         browseTiles = tiles,
         onItemClick = onItemClick,
@@ -126,6 +127,7 @@ fun HomeContent(
     continueListening: List<NextUpCard> = emptyList(),
     onListen: (String, Int) -> Unit = { _, _ -> },
     onPlayHero: (HeroSlide) -> Unit = {},
+    seasonal: List<ContentRow> = emptyList(),
 ) {
     val heroFocus = remember { FocusRequester() }
     // Focus content (not the drawer) once on first arrival; after that, focus
@@ -183,6 +185,8 @@ fun HomeContent(
         if (nextUp.isNotEmpty()) {
             item(key = "next-up") { NextUpRow("Next Up", nextUp, onPlayFile) }
         }
+        // Seasonal rows never fail visibly or retry (contentRows hides them until they have enough items).
+        contentRows(seasonal, onItemClick, onRetry = {}, keyPrefix = "season-")
         if (favorites.isNotEmpty()) {
             item(key = "favorites") { CardRow("My List", favorites, onItemClick) }
         }
@@ -361,6 +365,7 @@ fun homeViewModel(): HomeViewModel {
                 loadRow = { archive.browse(it.query, BrowseSort.POPULAR, page = 1, rows = 20).items },
                 lookupItems = archive::itemsByIds,
                 hiddenIds = app.container.savedFilter::hidden,
+                seasonalRows = app.container.seasonalRows(),
                 continueWatching = library.observeContinueWatching(),
                 favorites = library.observeFavorites(),
                 nextUp = library.observeNextUp(),

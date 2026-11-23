@@ -81,6 +81,11 @@ class AppContainer(app: Application) {
 
     val homeRows: List<BrowseRow> = catalog.home.map(::rowFor)
 
+    /** Seasonal Home rows active on [today]; a row needs 8 items to show. */
+    fun seasonalRows(today: java.time.LocalDate = java.time.LocalDate.now()): List<BrowseRow> =
+        com.archivetv.domain.activeSeasons(today, catalog.seasonal)
+            .map { BrowseRow(it.id, it.title, queryBuilder.render(it.query), minItems = 8) }
+
     /** Drops every in-memory search result, so screens reload under a changed rights setting. */
     /** Which saved items the parental filter hides (Home's saved rows, My List). */
     val savedFilter = SavedFilter(archiveRepository::flaggedIds) { settings.hideAdult.value }

@@ -38,8 +38,10 @@ class HomeViewModelTest {
         heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
         favorites: kotlinx.coroutines.flow.Flow<List<ArchiveItem>> = flowOf(emptyList()),
         hiddenIds: suspend (List<String>) -> Set<String> = { emptySet() },
+        seasonalRows: List<BrowseRow> = emptyList(),
     ) = HomeViewModel(
         rows, loadRow, lookup, continueWatching, favorites, nextUp, continueListening, heroCheck, hiddenIds = hiddenIds,
+        seasonalRows = seasonalRows,
     )
 
     @Test fun rowsStartLoadingAndPublishIndependently() = runTest {
@@ -200,4 +202,16 @@ class HomeViewModelTest {
         assertThat(model.state.value.favorites.map { it.identifier }).containsExactly("b")
         assertThat(model.state.value.continueWatching.map { it.identifier }).containsExactly("c")
     }
+
+    @Test fun seasonalRowsLoadSeparately() = runTest {
+        val season = BrowseRow("season", "Season", "q-season", minItems = 8)
+        val model = vm(
+            loadRow = { row -> if (row.id == "season") (1..8).map { item("s$it") } else listOf(item(row.id)) },
+            seasonalRows = listOf(season),
+        )
+        val loaded = model.state.value.seasonal.single().state
+        assertThat(loaded).isEqualTo(RowState.Loaded((1..8).map { item("s$it") }))
+        assertThat(model.state.value.rows.map { it.config.id }).doesNotContain("season")
+    }
 }
+
