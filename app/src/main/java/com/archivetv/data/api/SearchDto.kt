@@ -19,6 +19,11 @@ data class SearchDocDto(
     @StringOrList val year: List<String> = emptyList(),
     val mediatype: String? = null,
     @StringOrList val collection: List<String> = emptyList(),
+    @StringOrList val licenseurl: List<String> = emptyList(),
+    @StringOrList val date: List<String> = emptyList(),
+    @StringOrList val creator: List<String> = emptyList(),
+    @StringOrList val publisher: List<String> = emptyList(),
+    @StringOrList val sponsor: List<String> = emptyList(),
 )
 
 /** Live Music Archive search: the recording and artist fields the Live Music screens use. */
@@ -43,6 +48,11 @@ data class LiveDocDto(
     @Json(name = "num_reviews") val numReviews: Int? = null,
     val downloads: Int? = null,
     @StringOrList val creator: List<String> = emptyList(),
+    @StringOrList val collection: List<String> = emptyList(),
+    @StringOrList val year: List<String> = emptyList(),
+    @StringOrList val licenseurl: List<String> = emptyList(),
+    @StringOrList val publisher: List<String> = emptyList(),
+    @StringOrList val sponsor: List<String> = emptyList(),
 )
 
 /** Search with caller-chosen fields for derived catalog groups (titles, creators, sponsors, sub-collections). */
@@ -62,4 +72,9 @@ data class FieldDocDto(
     @StringOrList val creator: List<String> = emptyList(),
     @StringOrList val sponsor: List<String> = emptyList(),
     val downloads: Int? = null,
+    @StringOrList val collection: List<String> = emptyList(),
+    @StringOrList val year: List<String> = emptyList(),
+    @StringOrList val date: List<String> = emptyList(),
+    @StringOrList val publisher: List<String> = emptyList(),
+    @StringOrList val licenseurl: List<String> = emptyList(),
 )
