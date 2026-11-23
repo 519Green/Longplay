@@ -60,6 +60,36 @@ class PlayerKeysTest {
         assertThat(autoHides(false, Player.STATE_ENDED)).isFalse()
     }
 
+    @Test fun onlyNavigationKeysShowAHiddenBar() {
+        // Search, volume, mute, stop and captions keep their own jobs.
+        listOf(
+            KeyEvent.KEYCODE_SEARCH, KeyEvent.KEYCODE_VOLUME_UP, KeyEvent.KEYCODE_VOLUME_MUTE,
+            KeyEvent.KEYCODE_MEDIA_STOP, KeyEvent.KEYCODE_CAPTIONS,
+        ).forEach { assertThat(action(it)).isEqualTo(KeyAction.PASS) }
+    }
+
+    @Test fun seekShowsTheBarOnlyForMediaKeys() {
+        assertThat(seekKeyShowsBar(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD)).isTrue()
+        assertThat(seekKeyShowsBar(KeyEvent.KEYCODE_MEDIA_REWIND)).isTrue()
+        assertThat(seekKeyShowsBar(KeyEvent.KEYCODE_DPAD_RIGHT)).isFalse()
+        assertThat(seekKeyShowsBar(KeyEvent.KEYCODE_DPAD_LEFT)).isFalse()
+    }
+
+    @Test fun pauseIconFollowsIntentNotBuffering() {
+        // While a stream buffers on open, the button must offer Pause, which is what OK will do.
+        assertThat(showsPause(playWhenReady = true, playbackState = Player.STATE_BUFFERING)).isTrue()
+        assertThat(showsPause(playWhenReady = true, playbackState = Player.STATE_READY)).isTrue()
+        assertThat(showsPause(playWhenReady = false, playbackState = Player.STATE_READY)).isFalse()
+        assertThat(showsPause(playWhenReady = true, playbackState = Player.STATE_ENDED)).isFalse()
+    }
+
+    @Test fun videoSessionIdsAreUnique() {
+        val a = nextVideoSessionId()
+        val b = nextVideoSessionId()
+        assertThat(a).startsWith("video")
+        assertThat(a).isNotEqualTo(b)
+    }
+
     @Test fun buttonsFollowTheItem() {
         assertThat(barButtons(1, 0)).isEqualTo(BarButtons(prevNext = false, captions = false))
         assertThat(barButtons(3, 2)).isEqualTo(BarButtons(prevNext = true, captions = true))
