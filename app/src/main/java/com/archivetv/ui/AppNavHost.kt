@@ -92,7 +92,6 @@ object Routes {
     const val MY_LIST = "mylist"
     const val DETAIL = "detail/{id}"
     const val PLAYER = "player/{id}?file={file}&start={start}"
-    const val SECTION = "section/{id}"
     const val TILES = "tiles/{id}"
     const val BROWSE = "browse/{id}"
     const val BROWSE_DERIVED = "browse/derived/{group}/{key}"
@@ -128,6 +127,9 @@ private val destinations = listOf(
     Destination(Routes.SETTINGS, "Settings", Icons.Filled.Settings),
 )
 
+/** Section ids from the drawer; each is its own destination. */
+private val sectionIds = destinations.map { it.route }.filter { it.startsWith("section/") }.map { it.removePrefix("section/") }
+
 /**
  * @param voiceSearchRequests emits each time the remote's search/mic key is pressed.
  */
@@ -157,10 +159,7 @@ fun AppNavHost(
     // reads canFocus while the Up key is being handled.
     var upHeld by remember { mutableStateOf(false) }
     var barHasFocus by remember { mutableStateOf(false) }
-    // Sections share one route pattern; key them by id so the drawer can tell them apart.
-    val route = backStack?.destination?.route.let { pattern ->
-        if (pattern == Routes.SECTION) Routes.section(backStack?.arguments?.getString("id").orEmpty()) else pattern
-    }
+    val route = backStack?.destination?.route
     val topLevel = destinations.any { it.route == route }
 
     // A rights-setting change drops the cached results at once, and every screen is rebuilt
@@ -210,10 +209,7 @@ fun AppNavHost(
     LaunchedEffect(backStack?.id) {
         val left = previousRoute
         val entry = backStack
-        // Sections share one pattern; key them by id like the drawer does.
-        previousRoute = entry?.destination?.route.let { pattern ->
-            if (pattern == Routes.SECTION) Routes.section(entry?.arguments?.getString("id").orEmpty()) else pattern
-        }
+        previousRoute = entry?.destination?.route
         val returning = entry != null && !seenEntries.add(entry.id)
         val fromPushed = left != null && destinations.none { it.route == left }
         if (entry != null && (left == Routes.NOW_PLAYING || (returning && fromPushed)) && previousRoute != Routes.NOW_PLAYING) {
@@ -320,14 +316,19 @@ fun AppNavHost(
                     },
                 )
             }
-            screen(Routes.SECTION, arguments = listOf(navArgument("id") { type = NavType.StringType })) { entry ->
-                SectionScreen(
-                    sectionId = entry.arguments!!.getString("id")!!,
-                    onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
-                    onOpenGroup = { nav.navigate(Routes.tiles(it)) },
-                    onOpenLeaf = { nav.navigate(Routes.browse(it)) },
-                    onOpenLive = { nav.navigate(Routes.LIVE) },
-                )
+            // One destination per section, not one "section/{id}" pattern: saved top-level stacks are
+            // keyed by destination, so a shared pattern made the drawer restore whichever section was
+            // saved last (Movies opened Animation and Shorts).
+            sectionIds.forEach { id ->
+                screen(Routes.section(id)) {
+                    SectionScreen(
+                        sectionId = id,
+                        onItemClick = { nav.navigate(Routes.detail(it.identifier)) },
+                        onOpenGroup = { nav.navigate(Routes.tiles(it)) },
+                        onOpenLeaf = { nav.navigate(Routes.browse(it)) },
+                        onOpenLive = { nav.navigate(Routes.LIVE) },
+                    )
+                }
             }
             screen(Routes.LIVE) {
                 LiveMusicScreen(
