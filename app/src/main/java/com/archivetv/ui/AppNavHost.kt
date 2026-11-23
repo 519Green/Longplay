@@ -35,6 +35,7 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -48,6 +49,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import androidx.tv.material3.Icon
+import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.ModalNavigationDrawer
 import androidx.tv.material3.NavigationDrawerItem
 import androidx.tv.material3.NavigationDrawerScope
@@ -196,6 +198,19 @@ fun AppNavHost(
     val itemFocus = remember { destinations.associate { it.route to FocusRequester() } }
     var drawerHasFocus by remember { mutableStateOf(false) }
     val contentFocus = remember { FocusRequester() }
+    // Bumped by a drawer choice: focus moves to the chosen screen, which closes the drawer.
+    var focusContentRequests by remember { mutableStateOf(0) }
+    LaunchedEffect(focusContentRequests) {
+        if (focusContentRequests == 0) return@LaunchedEffect
+        // RESUMED once the new screen's transition has finished and its content can take focus.
+        nav.currentBackStackEntry?.lifecycle?.currentStateFlow
+            ?.first { it.isAtLeast(androidx.lifecycle.Lifecycle.State.RESUMED) }
+        repeat(20) {
+            if (!drawerHasFocus) return@LaunchedEffect
+            runCatching { contentFocus.requestFocus() }
+            kotlinx.coroutines.delay(50)
+        }
+    }
 
     // Closing Now Playing leaves nothing focused (the bar refuses focus it was
     // not sent to); give focus back to the screen below, whose restorer picks
@@ -232,7 +247,12 @@ fun AppNavHost(
         runCatching { itemFocus.getValue(Routes.HOME).requestFocus() }
     }
 
+    // Nearly opaque behind the open drawer so its labels read clearly over the cards.
+    val background = MaterialTheme.colorScheme.background
     ModalNavigationDrawer(
+        scrimBrush = Brush.horizontalGradient(
+            listOf(background.copy(alpha = 0.97f), background.copy(alpha = 0.85f)),
+        ),
         drawerContent = {
             if (topLevel) {
                 Column(
@@ -259,7 +279,10 @@ fun AppNavHost(
                             destination = d,
                             selected = route == d.route,
                             focusRequester = itemFocus.getValue(d.route),
-                            onClick = { if (route != d.route) nav.navigateTopLevel(d.route) },
+                            onClick = {
+                                if (route != d.route) nav.navigateTopLevel(d.route)
+                                focusContentRequests++
+                            },
                         )
                     }
                 }
