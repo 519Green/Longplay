@@ -270,10 +270,11 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
         }
     }
 
+    fun back() = act(keyAction(KeyEvent.KEYCODE_BACK, barVisible, seekBarFocused, captionsOpen), KeyEvent.KEYCODE_BACK)
+
     // Back follows the same order as the other keys: caption list, then bar, then leave.
-    BackHandler(enabled = failure == null) {
-        act(keyAction(KeyEvent.KEYCODE_BACK, barVisible, seekBarFocused, captionsOpen), KeyEvent.KEYCODE_BACK)
-    }
+    // Normally the key handler below takes Back; this covers the moment nothing has focus.
+    BackHandler(enabled = failure == null) { back() }
 
     Box(
         Modifier
@@ -282,7 +283,14 @@ fun PlayerScreen(identifier: String, startIndex: Int?, onExit: () -> Unit, fromS
             .focusRequester(rootFocus)
             .onPreviewKeyEvent { e ->
                 val code = e.key.nativeKeyCode
-                if (failure != null || code == KeyEvent.KEYCODE_BACK) return@onPreviewKeyEvent false
+                if (failure != null) return@onPreviewKeyEvent false
+                // Taken here because Compose spends an unhandled Back on clearing focus, which
+                // swallowed the first press. Acted on at key-up, so the release cannot reach the
+                // screen underneath once the player has left.
+                if (code == KeyEvent.KEYCODE_BACK) {
+                    if (e.type == KeyEventType.KeyUp) back()
+                    return@onPreviewKeyEvent true
+                }
                 when (e.type) {
                     KeyEventType.KeyDown -> {
                         val action = keyAction(code, barVisible, seekBarFocused, captionsOpen)
