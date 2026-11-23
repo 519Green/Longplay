@@ -3,13 +3,16 @@ package com.archivetv.playback
 import android.content.Context
 import androidx.annotation.OptIn
 import android.net.Uri
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.session.MediaSession
 import com.archivetv.domain.PlayableFile
 
 @OptIn(UnstableApi::class)
@@ -19,6 +22,12 @@ class PlayerController(context: Context) {
         .setSeekBackIncrementMs(SEEK_STEP_MS)
         .setSeekForwardIncrementMs(SEEK_STEP_MS)
         .build()
+
+    /**
+     * The video's own media session, so the remote's media keys reach the video and not the
+     * background audio session (which is paused while a video plays). Released with the player.
+     */
+    val session: MediaSession = MediaSession.Builder(context, player).setId("video").build()
 
     /** Called when playback moves past a file on its own (it played to the end). */
     var onFileCompleted: ((index: Int) -> Unit)? = null
@@ -90,8 +99,50 @@ class PlayerController(context: Context) {
     fun positionMs(): Long = player.currentPosition
     fun durationMs(): Long = player.duration.coerceAtLeast(0L)
 
+    /** Moves the position by [deltaMs], kept within the file. */
+    fun seekBy(deltaMs: Long) {
+        val duration = player.duration
+        val target = (player.currentPosition + deltaMs).coerceAtLeast(0L)
+        player.seekTo(if (duration == C.TIME_UNSET) target else target.coerceAtMost(duration))
+    }
+
+    /** Labels of the current file's caption tracks, in track order. */
+    fun captionLabels(): List<String> = textTracks().map { it.label }.distinct()
+
+    /** The label of the caption track showing now, or null when captions are off. */
+    fun selectedCaption(): String? = textTracks().firstOrNull { it.selected }?.label
+
+    /** Shows the caption track labelled [trackLabel]; null turns captions off. */
+    fun selectCaption(trackLabel: String?) {
+        val builder = player.trackSelectionParameters.buildUpon()
+        val match = trackLabel?.let { label -> textTracks().firstOrNull { it.label == label } }
+        if (match == null) {
+            builder.clearOverridesOfType(C.TRACK_TYPE_TEXT).setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
+        } else {
+            builder.setTrackTypeDisabled(C.TRACK_TYPE_TEXT, false)
+                .setOverrideForType(TrackSelectionOverride(match.group, match.index))
+        }
+        player.trackSelectionParameters = builder.build()
+    }
+
+    private class TextTrack(
+        val group: androidx.media3.common.TrackGroup,
+        val index: Int,
+        val label: String,
+        val selected: Boolean,
+    )
+
+    private fun textTracks(): List<TextTrack> =
+        player.currentTracks.groups.filter { it.type == C.TRACK_TYPE_TEXT }.flatMap { g ->
+            (0 until g.length).filter { g.isTrackSupported(it) }.map { i ->
+                val format = g.getTrackFormat(i)
+                TextTrack(g.mediaTrackGroup, i, format.label ?: format.language ?: "Captions", g.isTrackSelected(i))
+            }
+        }
+
     fun release() {
         player.removeListener(listener)
+        session.release()
         player.release()
     }
 }
