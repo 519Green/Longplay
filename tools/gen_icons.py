@@ -49,6 +49,16 @@ def icon(size):
     return img.resize((size, size), Image.LANCZOS)
 
 
+def foreground(size):
+    """Adaptive-icon foreground: the record alone on a transparent 108 dp canvas.
+    Launchers mask the outer edge (circle, squircle...); the disc stays inside the
+    66 dp safe zone, so every mask shape shows the whole record."""
+    s = size * SS
+    img = Image.new("RGBA", (s, s), (0, 0, 0, 0))
+    record(ImageDraw.Draw(img), s / 2, s / 2, s * 0.29)
+    return img.resize((size, size), Image.LANCZOS)
+
+
 def banner(w, h):
     W, H = w * SS, h * SS
     img = Image.new("RGBA", (W, H), BG)
@@ -82,6 +92,8 @@ def main(res: Path):
         out = res / f"mipmap-{name}"
         out.mkdir(parents=True, exist_ok=True)
         icon(int(48 * scale)).save(out / "ic_launcher.png")
+        # Android 8+ uses the adaptive icon (mipmap-anydpi-v26/ic_launcher.xml) built from this layer.
+        foreground(int(108 * scale)).save(out / "ic_launcher_foreground.png")
     # TV banner: 320 x 180 dp; xhdpi is the density Android TV uses.
     out = res / "drawable-xhdpi"
     out.mkdir(parents=True, exist_ok=True)
