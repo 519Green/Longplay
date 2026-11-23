@@ -20,6 +20,9 @@ object AdultRule {
     private val adultTags = setOf(
         "adult", "adults only", "adult content", "nsfw", "porn", "pornography", "xxx", "erotica", "erotic",
         "nudity", "nude", "hentai", "sexploitation", "x-rated",
+        // Kinds of adult film and animation, measured on live licensed uploads (2026-11-22).
+        "erotic film", "erotic films", "adult film", "adult films", "adult movie", "adult animation",
+        "adult cartoon", "adult anime",
     )
     private val nonToken = Regex("[^A-Z0-9]+")
 
