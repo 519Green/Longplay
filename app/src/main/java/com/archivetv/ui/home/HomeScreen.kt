@@ -92,6 +92,11 @@ fun HomeScreen(
     viewModel: HomeViewModel = homeViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    // The date may have moved on while the app sat in the background (TVs keep apps alive for days).
+    androidx.lifecycle.compose.LifecycleStartEffect(viewModel) {
+        viewModel.refreshSeasons()
+        onStopOrDispose { }
+    }
     val app = LocalContext.current.applicationContext as ArchiveTvApp
     val tiles = remember { browseTiles(app.container.catalog, onOpenGroup) }
     HomeContent(
@@ -365,7 +370,7 @@ fun homeViewModel(): HomeViewModel {
                 loadRow = { archive.browse(it.query, BrowseSort.POPULAR, page = 1, rows = 20).items },
                 lookupItems = archive::itemsByIds,
                 hiddenIds = app.container.savedFilter::hidden,
-                seasonalRows = app.container.seasonalRows(),
+                seasonalRows = { app.container.seasonalRows() },
                 continueWatching = library.observeContinueWatching(),
                 favorites = library.observeFavorites(),
                 nextUp = library.observeNextUp(),

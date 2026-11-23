@@ -64,10 +64,13 @@ class HomeViewModel(
     private val heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
     /** Saved identifiers the parental filter hides; see [com.archivetv.data.SavedFilter]. */
     private val hiddenIds: suspend (List<String>) -> Set<String> = { emptySet() },
-    seasonalRows: List<BrowseRow> = emptyList(),
+    /** The seasonal rows active today; asked again by [refreshSeasons]. */
+    private val seasonalRows: () -> List<BrowseRow> = { emptyList() },
+    private val loadSeason: suspend (BrowseRow) -> List<ArchiveItem> = loadRow,
 ) : ViewModel() {
     private val rows = ParallelRows(viewModelScope, configuredRows, loadRow)
-    private val seasons = ParallelRows(viewModelScope, seasonalRows, loadRow)
+    private var seasonIds: List<String>? = null
+    private var seasonsJob: Job? = null
 
     private val _state = MutableStateFlow(HomeUiState(rows = rows.state.value))
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
@@ -128,14 +131,28 @@ class HomeViewModel(
                 updateHero(list)
             }
         }
-        viewModelScope.launch {
-            seasons.state.collect { list -> _state.update { it.copy(seasonal = list) } }
-        }
         rows.start()
-        seasons.start()
+        refreshSeasons()
     }
 
     fun retry(index: Int) = rows.retry(index)
+
+    /**
+     * Re-reads which seasons are active (Home calls this each time it comes back on screen, since a TV can keep
+     * the app alive for days) and reloads the seasonal rows only when the set changed.
+     */
+    fun refreshSeasons() {
+        val now = seasonalRows()
+        val ids = now.map { it.id }
+        if (ids == seasonIds) return
+        seasonIds = ids
+        seasonsJob?.cancel()
+        val seasons = ParallelRows(viewModelScope, now, loadSeason)
+        seasonsJob = viewModelScope.launch {
+            seasons.state.collect { list -> _state.update { it.copy(seasonal = list) } }
+        }
+        seasons.start()
+    }
 
     private suspend fun <T> visible(items: List<T>, id: (T) -> String): List<T> {
         val hidden = hiddenIds(items.map(id))
