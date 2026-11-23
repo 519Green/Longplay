@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -26,7 +27,15 @@ import com.archivetv.ui.theme.Dimens
 fun MyListScreen(onItemClick: (ArchiveItem) -> Unit) {
     val app = LocalContext.current.applicationContext as ArchiveTvApp
     val flow = remember { app.container.libraryRepository.observeFavorites() }
-    val favorites by flow.collectAsStateWithLifecycle(initialValue = null)
+    val saved by flow.collectAsStateWithLifecycle(initialValue = null)
+    // The parental filter hides flagged titles here too.
+    val favorites by produceState<List<ArchiveItem>?>(null, saved) {
+        val list = saved
+        value = list?.let { items ->
+            val hidden = app.container.savedFilter.hidden(items.map { it.identifier })
+            items.filterNot { it.identifier in hidden }
+        }
+    }
     Column(
         Modifier
             .fillMaxSize()

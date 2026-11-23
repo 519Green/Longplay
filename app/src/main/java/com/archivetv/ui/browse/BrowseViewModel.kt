@@ -29,8 +29,12 @@ data class BrowseUiState(
     val error: String? = null,
     /** Music leaves offer Play all / Shuffle. */
     val playAll: Boolean = false,
+    /** Server results paged through so far; above items.size when the rights filter drops docs. */
+    val fetched: Int = 0,
 ) {
-    val endReached: Boolean get() = total != null && items.size >= total
+    val endReached: Boolean get() = total != null && (items.size >= total || fetched >= total)
+    /** Nothing to show: no matches, or every match was dropped by the rights filter. */
+    val isEmpty: Boolean get() = endReached && items.isEmpty()
 }
 
 /**
@@ -51,6 +55,8 @@ class BrowseViewModel(
 
     private var selectedFacet: String? = null
     private var nextPage = 1
+    /** Pages in a row that the rights filter emptied; fetching stops after [MAX_EMPTY_PAGES]. */
+    private var emptyPages = 0
     private var loadJob: Job? = null
 
     init {
@@ -88,7 +94,8 @@ class BrowseViewModel(
     private fun restart() {
         loadJob?.cancel()
         nextPage = 1
-        _state.update { it.copy(items = emptyList(), total = null, error = null, loading = false) }
+        emptyPages = 0
+        _state.update { it.copy(items = emptyList(), total = null, error = null, loading = false, fetched = 0) }
         loadPage()
     }
 
@@ -101,13 +108,19 @@ class BrowseViewModel(
             runCatching { browse(query, sort, page, pageSize) }
                 .onSuccess { result ->
                     nextPage = page + 1
+                    emptyPages = if (result.items.isEmpty()) emptyPages + 1 else 0
+                    val fetched = if (emptyPages >= MAX_EMPTY_PAGES) result.total else minOf(page * pageSize, result.total)
                     _state.update {
-                        it.copy(items = it.items + result.items, total = result.total, loading = false)
+                        it.copy(items = it.items + result.items, total = result.total, loading = false, fetched = fetched)
                     }
+                    // A page the filter emptied adds no cards, so the grid would never ask for more.
+                    if (result.items.isEmpty() && !_state.value.endReached) loadPage()
                 }
                 .onFailure { _state.update { it.copy(loading = false, error = "Couldn't load. Select to retry.") } }
         }
     }
+
+    private companion object { const val MAX_EMPTY_PAGES = 5 }
 
     private fun currentQuery(): String {
         val facet = facetGroup?.facets?.firstOrNull { it.label == selectedFacet }

@@ -24,6 +24,11 @@ data class MetadataBodyDto(
     /** "silent" / "sound", and "black and white" / "color" on many films. */
     @StringOrList val sound: List<String> = emptyList(),
     @StringOrList val color: List<String> = emptyList(),
+    /** Content warnings, read by the parental filter ([com.archivetv.domain.AdultRule]). */
+    @StringOrList val adult: List<String> = emptyList(),
+    @StringOrList val nsfw: List<String> = emptyList(),
+    @StringOrList val rating: List<String> = emptyList(),
+    @StringOrList val subject: List<String> = emptyList(),
 )
 
 @JsonClass(generateAdapter = true)

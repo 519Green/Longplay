@@ -12,7 +12,13 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.tv.material3.MaterialTheme
 import androidx.tv.material3.Surface
 import androidx.tv.material3.SurfaceDefaults
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.archivetv.ui.AppNavHost
+import com.archivetv.ui.settings.PinDialog
+import com.archivetv.ui.settings.PinMode
 import com.archivetv.ui.theme.ArchiveTvTheme
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -57,13 +63,30 @@ class MainActivity : ComponentActivity() {
                         containerColor = MaterialTheme.colorScheme.background,
                     ),
                 ) {
-                    AppNavHost(
-                        voiceSearchRequests = voiceSearchRequests,
-                        // Testing / future deep links: adb shell am start -n
-                        // com.archivetv/.MainActivity --es open_detail <identifier>
-                        openDetail = intent?.getStringExtra(EXTRA_OPEN_DETAIL),
-                        nowPlayingRequests = nowPlayingRequests,
-                    )
+                    val container = (application as ArchiveTvApp).container
+                    // Parental PIN on first run, before the app itself, so a parent sets it before a kid can.
+                    var askPin by remember { mutableStateOf(!container.settings.hasPin() && !container.pinPromptShown) }
+                    if (askPin) {
+                        PinDialog(
+                            mode = PinMode.SET,
+                            gate = container.pinGate,
+                            settings = container.settings,
+                            firstTitle = "Set a parental PIN",
+                            intro = "The PIN is needed to turn off the adult-content and public-domain filters.",
+                            dismissLabel = "Not now",
+                        ) {
+                            container.pinPromptShown = true
+                            askPin = false
+                        }
+                    } else {
+                        AppNavHost(
+                            voiceSearchRequests = voiceSearchRequests,
+                            // Testing / future deep links: adb shell am start -n
+                            // com.archivetv/.MainActivity --es open_detail <identifier>
+                            openDetail = intent?.getStringExtra(EXTRA_OPEN_DETAIL),
+                            nowPlayingRequests = nowPlayingRequests,
+                        )
+                    }
                 }
             }
         }

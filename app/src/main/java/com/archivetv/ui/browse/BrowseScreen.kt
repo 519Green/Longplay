@@ -137,7 +137,7 @@ fun BrowseScreen(
                 item(key = "error") { LabelCard(message, onClick = viewModel::retry, width = null, focusKey = null) }
             }
         }
-        if (state.total == 0) {
+        if (state.isEmpty) {
             Text(
                 "Nothing here yet. Try another filter.",
                 style = MaterialTheme.typography.bodyLarge,

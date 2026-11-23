@@ -36,7 +36,11 @@ class HomeViewModelTest {
         nextUp: kotlinx.coroutines.flow.Flow<List<NextUp>> = flowOf(emptyList()),
         continueListening: kotlinx.coroutines.flow.Flow<List<ListenCard>> = flowOf(emptyList()),
         heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
-    ) = HomeViewModel(rows, loadRow, lookup, continueWatching, flowOf(emptyList()), nextUp, continueListening, heroCheck)
+        favorites: kotlinx.coroutines.flow.Flow<List<ArchiveItem>> = flowOf(emptyList()),
+        hiddenIds: suspend (List<String>) -> Set<String> = { emptySet() },
+    ) = HomeViewModel(
+        rows, loadRow, lookup, continueWatching, favorites, nextUp, continueListening, heroCheck, hiddenIds = hiddenIds,
+    )
 
     @Test fun rowsStartLoadingAndPublishIndependently() = runTest {
         val gateA = CompletableDeferred<List<ArchiveItem>>()
@@ -183,5 +187,17 @@ class HomeViewModelTest {
         val card = model.state.value.continueListening.single()
         assertThat(card.fileIndex).isEqualTo(5)
         assertThat(card.label).isEqualTo("Next: 6 of 973")
+    }
+
+    @Test fun flaggedSavedItemsAreHidden() = runTest {
+        val model = vm(
+            rows = emptyList(),
+            loadRow = { emptyList() },
+            continueWatching = flowOf(listOf(item("a"), item("c"))),
+            favorites = flowOf(listOf(item("a"), item("b"))),
+            hiddenIds = { ids -> ids.filter { it == "a" }.toSet() },
+        )
+        assertThat(model.state.value.favorites.map { it.identifier }).containsExactly("b")
+        assertThat(model.state.value.continueWatching.map { it.identifier }).containsExactly("c")
     }
 }

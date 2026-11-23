@@ -60,6 +60,8 @@ class HomeViewModel(
     nextUp: Flow<List<NextUp>> = emptyFlow(),
     continueListening: Flow<List<ListenCard>> = emptyFlow(),
     private val heroCheck: suspend (ArchiveItem) -> HeroSlide? = { HeroSlide(it) },
+    /** Saved identifiers the parental filter hides; see [com.archivetv.data.SavedFilter]. */
+    private val hiddenIds: suspend (List<String>) -> Set<String> = { emptySet() },
 ) : ViewModel() {
     private val rows = ParallelRows(viewModelScope, configuredRows, loadRow)
 
@@ -71,7 +73,8 @@ class HomeViewModel(
 
     init {
         viewModelScope.launch {
-            continueWatching.collect { items ->
+            continueWatching.collect { all ->
+                val items = visible(all) { it.identifier }
                 learnTitles(items.map { it.identifier })
                 val named = items.map { cw ->
                     knownItems[cw.identifier]
@@ -81,7 +84,8 @@ class HomeViewModel(
             }
         }
         viewModelScope.launch {
-            nextUp.collect { list ->
+            nextUp.collect { all ->
+                val list = visible(all) { it.identifier }
                 learnTitles(list.map { it.identifier })
                 val cards = list.map { n ->
                     NextUpCard(
@@ -94,7 +98,8 @@ class HomeViewModel(
             }
         }
         viewModelScope.launch {
-            continueListening.collect { list ->
+            continueListening.collect { all ->
+                val list = visible(all) { it.identifier }
                 learnTitles(list.map { it.identifier })
                 val cards = list.map { c ->
                     val known = knownItems[c.identifier] ?: ArchiveItem(c.identifier, c.identifier)
@@ -108,7 +113,10 @@ class HomeViewModel(
             }
         }
         viewModelScope.launch {
-            favorites.collect { fav -> _state.update { it.copy(favorites = fav) } }
+            favorites.collect { all ->
+                val fav = visible(all) { it.identifier }
+                _state.update { it.copy(favorites = fav) }
+            }
         }
         viewModelScope.launch {
             rows.state.collect { list ->
@@ -120,6 +128,11 @@ class HomeViewModel(
     }
 
     fun retry(index: Int) = rows.retry(index)
+
+    private suspend fun <T> visible(items: List<T>, id: (T) -> String): List<T> {
+        val hidden = hiddenIds(items.map(id))
+        return if (hidden.isEmpty()) items else items.filterNot { id(it) in hidden }
+    }
 
     /** Fetches titles for identifiers not seen yet (one batched request). */
     private suspend fun learnTitles(ids: List<String>) {

@@ -15,8 +15,16 @@ import com.archivetv.domain.yearCounts
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
-/** Live Music Archive: artists, concerts grouped from recordings, and discovery rows. Live queries only. */
-class LiveMusicRepository(private val service: InternetArchiveService) {
+/**
+ * Live Music Archive: artists, concerts grouped from recordings, and discovery rows. Live queries only.
+ * [service] is the rights-filtered service. Artist records are collections, which carry no license, so they are
+ * always listed from [raw]; when [openOnly] is on, only artists with at least one passing recording are kept.
+ */
+class LiveMusicRepository(
+    private val service: InternetArchiveService,
+    private val raw: InternetArchiveService = service,
+    private val openOnly: () -> Boolean = { false },
+) {
     private val artistFields = listOf("identifier", "title")
     // Not `collection`: search docs carry every user's fav- list (up to thousands
     // of entries), which made responses 4-24x larger. Artist pages already know
@@ -28,18 +36,30 @@ class LiveMusicRepository(private val service: InternetArchiveService) {
 
     private val artistsLock = Mutex()
     private var allArtists: List<Artist>? = null
+    private var passingIds: Set<String>? = null
+
+    /** Drops the session caches, so the next calls fetch again (after the rights setting changes). */
+    suspend fun clearCache() = artistsLock.withLock {
+        allArtists = null
+        passingIds = null
+    }
 
     /** Every LMA artist, fetched once per app session, sorted by [searchKey]. */
     suspend fun artists(): List<Artist> = artistsLock.withLock {
-        allArtists ?: service.searchLive(LiveQueries.ARTISTS, artistFields, rows = 10_000, sort = "titleSorter asc")
+        allArtists ?: raw.searchLive(LiveQueries.ARTISTS, artistFields, rows = 10_000, sort = "titleSorter asc")
             .response.docs.mapNotNull { it.toArtist() }
+            .let { keepPassing(it) }
             .sortedBy { searchKey(it.name) }
             .also { allArtists = it }
     }
 
-    suspend fun popularArtists(limit: Int = 20): List<Artist> =
-        service.searchLive(LiveQueries.ARTISTS, artistFields, rows = limit, sort = "downloads desc")
+    suspend fun popularArtists(limit: Int = 20): List<Artist> {
+        val rows = if (openOnly()) limit * 25 else limit
+        return raw.searchLive(LiveQueries.ARTISTS, artistFields, rows = rows, sort = "downloads desc")
             .response.docs.mapNotNull { it.toArtist() }
+            .let { keepPassing(it) }
+            .take(limit)
+    }
 
     /** The year of the artist's most-downloaded recording. */
     suspend fun startYear(artistId: String): Int? =
@@ -75,9 +95,25 @@ class LiveMusicRepository(private val service: InternetArchiveService) {
     suspend fun searchArtists(text: String, limit: Int = 10): List<Artist> {
         val query = LiveQueries.artistSearch(text)
         if (query.isEmpty()) return emptyList()
-        return service.searchLive(query, artistFields, rows = limit, sort = "downloads desc")
+        val rows = if (openOnly()) limit * 5 else limit
+        return raw.searchLive(query, artistFields, rows = rows, sort = "downloads desc")
             .response.docs.mapNotNull { it.toArtist() }
+            .let { keepPassing(it) }
+            .take(limit)
     }
+
+    /** With the rights setting on, only artists that have a passing recording; otherwise [artists] unchanged. */
+    private suspend fun keepPassing(artists: List<Artist>): List<Artist> {
+        if (!openOnly()) return artists
+        val ids = passingArtistIds()
+        return artists.filter { it.id in ids }
+    }
+
+    /** The artist collections of every recording that passes the rights filter, fetched once per session. */
+    private suspend fun passingArtistIds(): Set<String> = passingIds
+        ?: service.searchLive("collection:(etree) AND mediatype:etree", listOf("collection"), rows = 5000, sort = "downloads desc")
+            .response.docs.flatMapTo(HashSet()) { it.collection }
+            .also { passingIds = it }
 
     /** The 100 most-downloaded matching recordings, grouped into concerts. */
     suspend fun searchConcerts(text: String, limit: Int = 20): List<Concert> {

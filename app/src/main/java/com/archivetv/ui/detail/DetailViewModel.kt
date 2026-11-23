@@ -133,7 +133,10 @@ class DetailViewModel(
                     }
                 }
                 .onFailure {
-                    _state.value = DetailUiState(error = "Could not load this title.")
+                    _state.value = DetailUiState(
+                        error = if (it is com.archivetv.data.HiddenByParentalFilter) com.archivetv.data.PARENTAL_BLOCK_TEXT
+                        else "Could not load this title.",
+                    )
                 }
         }
     }

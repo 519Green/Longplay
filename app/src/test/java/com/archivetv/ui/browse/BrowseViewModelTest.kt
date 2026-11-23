@@ -128,4 +128,41 @@ class BrowseViewModelTest {
         assertThat(vm().state.value.playAll).isFalse()
         assertThat(vm(leaf = leaf.copy(playAll = true)).state.value.playAll).isTrue()
     }
+
+    // The rights filter can drop some or all docs of a page while numFound stays as the server reported it.
+    private fun filteredVm(total: Int, kept: (page: Int) -> Int) =
+        BrowseViewModel(
+            leaf = leaf,
+            facetGroup = null,
+            render = ::render,
+            browse = { q, sort, page, _ ->
+                calls += Call(q, sort, page)
+                BrowsePage(items("p$page-", kept(page)), total)
+            },
+            count = { 0 },
+            pageSize = 2,
+        )
+
+    @Test fun aPageFilteredToNothingLoadsTheNextOne() = runTest {
+        val s = filteredVm(total = 6) { page -> if (page == 1) 0 else 2 }.state.value
+        assertThat(calls.map { it.page }).containsExactly(1, 2).inOrder()
+        assertThat(s.items).hasSize(2)
+        assertThat(s.endReached).isFalse()
+    }
+
+    @Test fun everyPageFilteredToNothingEndsEmpty() = runTest {
+        val s = filteredVm(total = 4) { 0 }.state.value
+        assertThat(calls.map { it.page }).containsExactly(1, 2).inOrder()
+        assertThat(s.endReached).isTrue()
+        assertThat(s.isEmpty).isTrue()
+    }
+
+    @Test fun shortPagesKeepPagingUntilTheServerRunsOut() = runTest {
+        val model = filteredVm(total = 4) { 1 }
+        assertThat(model.state.value.endReached).isFalse()
+        model.loadMore()
+        assertThat(model.state.value.items).hasSize(2)
+        assertThat(model.state.value.endReached).isTrue()
+        assertThat(model.state.value.isEmpty).isFalse()
+    }
 }
