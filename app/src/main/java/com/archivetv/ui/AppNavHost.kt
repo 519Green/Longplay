@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -58,6 +59,7 @@ import com.archivetv.ui.player.PlayerScreen
 import com.archivetv.ui.browse.BrowseScreen
 import com.archivetv.ui.browse.DerivedBrowseScreen
 import com.archivetv.ui.search.SearchScreen
+import com.archivetv.ui.settings.SettingsScreen
 import com.archivetv.ui.live.ArtistScreen
 import com.archivetv.ui.live.ArtistsScreen
 import com.archivetv.ui.live.LiveMusicScreen
@@ -66,6 +68,7 @@ import com.archivetv.ui.section.TilesScreen
 import com.archivetv.ui.theme.SectionIcons
 import com.archivetv.ui.theme.Dimens
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -97,6 +100,7 @@ object Routes {
     const val LIVE = "live"
     const val LIVE_ARTISTS = "live/artists"
     const val LIVE_ARTIST = "live/artist/{id}"
+    const val SETTINGS = "settings"
     fun liveArtist(id: String) = "live/artist/$id"
     fun detail(id: String) = "detail/$id"
     /** [fromStart] plays [fileIndex] (default the first file) from 0:00, ignoring saved positions. */
@@ -121,6 +125,7 @@ private val destinations = listOf(
     Destination(Routes.section("educational"), "Educational", SectionIcons.School),
     Destination(Routes.section("listen"), "Listen", SectionIcons.Headphones),
     Destination(Routes.MY_LIST, "My List", Icons.Filled.Favorite),
+    Destination(Routes.SETTINGS, "Settings", Icons.Filled.Settings),
 )
 
 /**
@@ -134,7 +139,8 @@ fun AppNavHost(
     nowPlayingRequests: Flow<Unit> = emptyFlow(),
 ) {
     val nav = rememberNavController()
-    val audio = (LocalContext.current.applicationContext as ArchiveTvApp).container.audio
+    val container = (LocalContext.current.applicationContext as ArchiveTvApp).container
+    val audio = container.audio
     val scope = rememberCoroutineScope()
     /** Starts an audio item through the background player. */
     fun playAudio(id: String, index: Int?, fromStart: Boolean = false) {
@@ -156,6 +162,23 @@ fun AppNavHost(
         if (pattern == Routes.SECTION) Routes.section(backStack?.arguments?.getString("id").orEmpty()) else pattern
     }
     val topLevel = destinations.any { it.route == route }
+
+    // A rights-setting change drops the cached results at once, and every screen is rebuilt
+    // (fresh ViewModels, no saved stacks) when the viewer next lands on a top-level screen
+    // other than Settings.
+    var pendingReset by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) {
+        container.settings.openOnly.drop(1).collect {
+            container.clearSessionCaches()
+            pendingReset = true
+        }
+    }
+    LaunchedEffect(pendingReset, route) {
+        val target = route ?: return@LaunchedEffect
+        if (!pendingReset || target == Routes.SETTINGS || !topLevel) return@LaunchedEffect
+        pendingReset = false
+        nav.rebuildAt(target)
+    }
 
     // One-shot: set by the mic key, cleared by Search once it starts listening.
     var voicePending by remember { mutableStateOf(false) }
@@ -402,6 +425,9 @@ fun AppNavHost(
             screen(Routes.NOW_PLAYING) {
                 NowPlayingScreen()
             }
+            screen(Routes.SETTINGS) {
+                SettingsScreen(container.settings)
+            }
         }
         }
         }
@@ -447,6 +473,16 @@ private fun NavGraphBuilder.screen(
 
 /** One [ReturnFocus] per back stack entry id, kept by the nav host across recompositions. */
 private val LocalReturnFocusMap = staticCompositionLocalOf<MutableMap<String, ReturnFocus>> { mutableMapOf() }
+
+/**
+ * Replaces the whole back stack with a fresh Home, plus [route] on top when it isn't Home, and drops every
+ * saved top-level stack, so no screen loaded before a settings change can come back.
+ */
+private fun NavHostController.rebuildAt(route: String) {
+    (destinations.map { it.route } + Routes.SECTION).forEach { runCatching { clearBackStack(it) } }
+    navigate(Routes.HOME) { popUpTo(graph.id) { inclusive = true } }
+    if (route != Routes.HOME) navigate(route)
+}
 
 /** Top-level screens replace each other above Home instead of stacking up. */
 private fun NavHostController.navigateTopLevel(route: String) {
