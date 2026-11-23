@@ -295,5 +295,11 @@ class CatalogLoaderTest {
         assertThat(catalog.seasonal.map { it.title })
             .containsExactly("Christmas", "Halloween", "Thanksgiving", "Easter", "New Year").inOrder()
     }
+
+    @Test fun seasonalRowsIncludeCommunityUploads() {
+        // Owner choice "B" (2026-11-23): curated collections alone leave most holidays under the 8-item minimum.
+        val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
+        catalog.seasonal.forEach { assertThat(it.query.collections).contains("opensource_movies") }
+    }
 }
 

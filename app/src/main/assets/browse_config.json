@@ -1762,7 +1762,8 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels"
+          "universal_newsreels",
+          "opensource_movies"
         ],
         "subjectAny": [
           "christmas",
@@ -1789,7 +1790,8 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels"
+          "universal_newsreels",
+          "opensource_movies"
         ],
         "subjectAny": [
           "halloween"
@@ -1815,7 +1817,8 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels"
+          "universal_newsreels",
+          "opensource_movies"
         ],
         "subjectAny": [
           "thanksgiving"
@@ -1843,7 +1846,8 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels"
+          "universal_newsreels",
+          "opensource_movies"
         ],
         "subjectAny": [
           "easter"
@@ -1869,7 +1873,8 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels"
+          "universal_newsreels",
+          "opensource_movies"
         ],
         "subjectAny": [
           "new year"
