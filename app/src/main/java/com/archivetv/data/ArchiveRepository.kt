@@ -2,6 +2,7 @@ package com.archivetv.data
 
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.SearchDocDto
+import com.archivetv.domain.AdultRule
 import com.archivetv.domain.ArchiveItem
 import com.archivetv.domain.ItemFacts
 import com.archivetv.domain.averageStars
@@ -85,12 +86,20 @@ class ArchiveRepository(
     }
 
     /** Looks up titles and years for known identifiers in one request. */
+    /** Saved identifiers whose own metadata marks them adult ([AdultRule]); unfiltered lookup, one request. */
+    suspend fun flaggedIds(ids: List<String>): Set<String> {
+        if (ids.isEmpty()) return emptySet()
+        return lookupService.search(query = identifierQuery(ids), rows = ids.size, sort = "downloads desc")
+            .response.docs.filter { AdultRule.isAdult(it.adultMeta()) }
+            .mapTo(HashSet()) { it.identifier }
+    }
+
+    private fun identifierQuery(ids: List<String>) =
+        ids.joinToString(" OR ", prefix = "identifier:(", postfix = ")") { "\"" + it.replace("\"", "") + "\"" }
+
     suspend fun itemsByIds(ids: List<String>): Map<String, ArchiveItem> {
         if (ids.isEmpty()) return emptyMap()
-        val query = ids.joinToString(" OR ", prefix = "identifier:(", postfix = ")") {
-            "\"" + it.replace("\"", "") + "\""
-        }
-        return lookupService.search(query = query, rows = ids.size, sort = "downloads desc")
+        return lookupService.search(query = identifierQuery(ids), rows = ids.size, sort = "downloads desc")
             .response.docs.map { it.toItem() }
             .associateBy { it.identifier }
     }
