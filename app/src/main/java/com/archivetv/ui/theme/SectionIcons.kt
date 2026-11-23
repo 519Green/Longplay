@@ -45,12 +45,29 @@ object SectionIcons {
             "s7,3.13 7,7v2h-4v8h3c1.66,0 3,-1.34 3,-3v-7c0,-4.97 -4.03,-9 -9,-9z",
     )
 
-    private fun icon(name: String, path: String): ImageVector =
-        ImageVector.Builder(
-            name = name,
-            defaultWidth = 24.dp,
-            defaultHeight = 24.dp,
-            viewportWidth = 24f,
-            viewportHeight = 24f,
-        ).addPath(pathData = addPathNodes(path), fill = SolidColor(Color.Black)).build()
+    private fun icon(name: String, path: String): ImageVector = materialIcon(name, path)
 }
+
+/** Player bar icons missing from material-icons-core (Material "filled" shapes, 24 x 24 viewport). */
+object PlayerIcons {
+    val Pause = materialIcon("Pause", "M6,19h4V5H6v14zM14,5v14h4V5h-4z")
+    val SkipNext = materialIcon("SkipNext", "M6,18l8.5,-6L6,6v12zM16,6v12h2V6h-2z")
+    val SkipPrevious = materialIcon("SkipPrevious", "M6,6h2v12H6zM9.5,12l8.5,6V6z")
+    val ClosedCaption = materialIcon(
+        "ClosedCaption",
+        "M19,4H5c-1.11,0 -2,0.9 -2,2v12c0,1.1 0.89,2 2,2h14c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2z" +
+            "M11,11H9.5v-0.5h-2v3h2V13H11v1c0,0.55 -0.45,1 -1,1H7c-0.55,0 -1,-0.45 -1,-1v-4" +
+            "c0,-0.55 0.45,-1 1,-1h3c0.55,0 1,0.45 1,1v1zM18,11h-1.5v-0.5h-2v3h2V13H18v1" +
+            "c0,0.55 -0.45,1 -1,1h-3c-0.55,0 -1,-0.45 -1,-1v-4c0,-0.55 0.45,-1 1,-1h3" +
+            "c0.55,0 1,0.45 1,1v1z",
+    )
+}
+
+private fun materialIcon(name: String, path: String): ImageVector =
+    ImageVector.Builder(
+        name = name,
+        defaultWidth = 24.dp,
+        defaultHeight = 24.dp,
+        viewportWidth = 24f,
+        viewportHeight = 24f,
+    ).addPath(pathData = addPathNodes(path), fill = SolidColor(Color.Black)).build()
