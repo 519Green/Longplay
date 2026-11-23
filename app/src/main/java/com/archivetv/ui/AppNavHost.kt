@@ -255,7 +255,8 @@ fun AppNavHost(
                         }
                         .focusGroup(),
                     horizontalAlignment = Alignment.Start,
-                    verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
+                    // Nine items at 56dp fill a 540dp-tall TV screen; any spacing pushes the last off the bottom.
+                    verticalArrangement = Arrangement.spacedBy(0.dp, Alignment.CenterVertically),
                 ) {
                     destinations.forEach { d ->
                         DrawerItem(
