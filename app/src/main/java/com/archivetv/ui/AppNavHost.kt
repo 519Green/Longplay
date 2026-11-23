@@ -481,7 +481,8 @@ private val LocalReturnFocusMap = staticCompositionLocalOf<MutableMap<String, Re
  * saved top-level stack, so no screen loaded before a settings change can come back.
  */
 private fun NavHostController.rebuildAt(route: String) {
-    (destinations.map { it.route } + Routes.SECTION).forEach { runCatching { clearBackStack(it) } }
+    // Every drawer route is its own destination, so this clears each saved stack exactly once.
+    destinations.forEach { runCatching { clearBackStack(it.route) } }
     navigate(Routes.HOME) { popUpTo(graph.id) { inclusive = true } }
     if (route != Routes.HOME) navigate(route)
 }
