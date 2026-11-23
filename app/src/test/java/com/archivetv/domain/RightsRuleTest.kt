@@ -28,19 +28,19 @@ class RightsRuleTest {
 
     @Test fun governmentProducers() {
         listOf(
-            "U.S. Army", "U. S. Office of Example Affairs", "US Navy", "United States Information Agency",
+            "U.S. Example Army Command", "U. S. Office of Example Affairs", "US Example Navy Unit", "United States Example Agency",
             "U.S. Department of Example",
         ).forEach { assertThat(RightsRule.isGovernmentProducer(it)).isTrue() }
         listOf(
-            "U.S. Steel Corporation", "United States Rubber Company", "Example State Department of Health",
+            "U.S. Example Steel Corporation", "United States Example Rubber Company", "Example State Department of Health",
             "National Association of Examples", "Universal Example Pictures",
         ).forEach { assertThat(RightsRule.isGovernmentProducer(it)).isFalse() }
     }
 
     @Test fun governmentInAnyProducerFieldPasses() {
         assertThat(RightsRule.passes(RightsMeta(sponsors = listOf("U.S. Office of Example")), day)).isTrue()
-        assertThat(RightsRule.passes(RightsMeta(publishers = listOf("U.S. Army Example Center")), day)).isTrue()
-        assertThat(RightsRule.passes(RightsMeta(creators = listOf("U.S. Steel Corporation")), day)).isFalse()
+        assertThat(RightsRule.passes(RightsMeta(publishers = listOf("U.S. Example Army Center")), day)).isTrue()
+        assertThat(RightsRule.passes(RightsMeta(creators = listOf("U.S. Example Steel Corporation")), day)).isFalse()
     }
 
     @Test fun nothingKnownFails() {

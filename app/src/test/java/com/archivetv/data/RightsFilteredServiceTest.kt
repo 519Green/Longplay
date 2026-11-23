@@ -30,7 +30,7 @@ private class RecordingService : InternetArchiveService {
                 numFound = 2,
                 docs = listOf(
                     SearchDocDto("open", licenseurl = listOf("http://creativecommons.org/licenses/by/3.0/")),
-                    SearchDocDto("closed", creator = listOf("U.S. Steel Corporation")),
+                    SearchDocDto("closed", creator = listOf("U.S. Example Steel Corporation")),
                 ),
             ),
         )
