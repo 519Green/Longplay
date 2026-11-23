@@ -9,7 +9,9 @@ import com.archivetv.data.LibraryRepository
 import com.archivetv.data.LiveMusicRepository
 import com.archivetv.data.PlayableFileSelector
 import com.archivetv.data.PrefsAppSettings
+import com.archivetv.data.PinGate
 import com.archivetv.data.RightsFilteredService
+import com.archivetv.data.SavedFilter
 import com.archivetv.data.SearchQueryBuilder
 import com.archivetv.data.api.InternetArchiveService
 import com.archivetv.data.api.archiveMoshi
@@ -47,7 +49,11 @@ class AppContainer(app: Application) {
         .create(InternetArchiveService::class.java)
 
     /** Every other search goes through the rights filter. */
-    private val service: InternetArchiveService = RightsFilteredService(rawService, { settings.openOnly.value })
+    private val service: InternetArchiveService = RightsFilteredService(
+        rawService,
+        openOnly = { settings.openOnly.value },
+        hideAdult = { settings.hideAdult.value },
+    )
 
     private val db = Room.databaseBuilder(
         app, AppDatabase::class.java, "archivetv.db"
@@ -74,8 +80,15 @@ class AppContainer(app: Application) {
     val homeRows: List<BrowseRow> = catalog.home.map(::rowFor)
 
     /** Drops every in-memory search result, so screens reload under a changed rights setting. */
+    /** Which saved items the parental filter hides (Home's saved rows, My List). */
+    val savedFilter = SavedFilter(archiveRepository::flaggedIds) { settings.hideAdult.value }
+
+    /** Wrong-PIN lockout, shared by every PIN prompt for the life of the app. */
+    val pinGate = PinGate()
+
     suspend fun clearSessionCaches() {
         derivedGroups.clearCache()
         liveMusic.clearCache()
+        savedFilter.clear()
     }
 }

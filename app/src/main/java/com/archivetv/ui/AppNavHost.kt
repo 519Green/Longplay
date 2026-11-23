@@ -70,6 +70,7 @@ import com.archivetv.ui.section.TilesScreen
 import com.archivetv.ui.theme.SectionIcons
 import com.archivetv.ui.theme.Dimens
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -169,7 +170,8 @@ fun AppNavHost(
     // other than Settings.
     var pendingReset by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) {
-        container.settings.openOnly.drop(1).collect {
+        // Either filter switch: drop cached results now, rebuild the screens once Settings is left.
+        combine(container.settings.openOnly, container.settings.hideAdult) { a, b -> a to b }.drop(1).collect {
             container.clearSessionCaches()
             pendingReset = true
         }
@@ -451,7 +453,7 @@ fun AppNavHost(
                 NowPlayingScreen()
             }
             screen(Routes.SETTINGS) {
-                SettingsScreen(container.settings)
+                SettingsScreen(container.settings, container.pinGate)
             }
         }
         }

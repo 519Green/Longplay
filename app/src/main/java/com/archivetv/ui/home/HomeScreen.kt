@@ -360,6 +360,7 @@ fun homeViewModel(): HomeViewModel {
                 configuredRows = app.container.homeRows,
                 loadRow = { archive.browse(it.query, BrowseSort.POPULAR, page = 1, rows = 20).items },
                 lookupItems = archive::itemsByIds,
+                hiddenIds = app.container.savedFilter::hidden,
                 continueWatching = library.observeContinueWatching(),
                 favorites = library.observeFavorites(),
                 nextUp = library.observeNextUp(),
