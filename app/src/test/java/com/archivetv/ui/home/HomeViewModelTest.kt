@@ -228,5 +228,15 @@ class HomeViewModelTest {
         assertThat(model.state.value.seasonal.map { it.config.id }).containsExactly("winter")
         assertThat(model.state.value.heroSlides.map { it.item.identifier }).doesNotContain("winter")
     }
+
+    @Test fun seasonsReloadWhenTheirQueryChanges() = runTest {
+        // Same season, new query (the rights switch or the year's cutoff changed it).
+        var row = BrowseRow("autumn", "Autumn", "q-old", minItems = 8)
+        val asked = mutableListOf<String>()
+        val model = vm(loadRow = { asked += it.query; (1..8).map { n -> item("x$n") } }, seasonsNow = { listOf(row) })
+        row = row.copy(query = "q-new")
+        model.refreshSeasons()
+        assertThat(asked).contains("q-new")
+    }
 }
 

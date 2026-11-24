@@ -3,6 +3,7 @@ package com.archivetv.data
 import com.archivetv.domain.CategoryQuery
 import com.archivetv.domain.ScopeKind
 import com.archivetv.domain.SearchScope
+import com.archivetv.domain.SeasonalEntry
 
 class SearchQueryBuilder {
     // IA has no "tv" mediatype; television items are mediatype:movies.
@@ -73,6 +74,18 @@ class SearchQueryBuilder {
      */
     fun render(query: CategoryQuery, facet: CategoryQuery? = null): String =
         (clauses(query) + facet?.let(::clauses).orEmpty() + "mediatype:${query.mediatype}").joinToString(" AND ")
+
+    /**
+     * A seasonal row: its query over the curated collections, OR the same query over its community collections
+     * AND'ed with [communityRule] (null when the rights filter is off).
+     */
+    fun seasonal(entry: SeasonalEntry, communityRule: String?): String {
+        val curated = render(entry.query)
+        if (entry.community.isEmpty()) return curated
+        val community = render(entry.query.copy(collections = entry.community)) +
+            (communityRule?.let { " AND $it" } ?: "")
+        return "($curated) OR ($community)"
+    }
 
     private fun clauses(q: CategoryQuery): List<String> = buildList {
         if (q.collections.isNotEmpty()) add(anyOf(q.collections))

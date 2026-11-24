@@ -69,7 +69,7 @@ class HomeViewModel(
     private val loadSeason: suspend (BrowseRow) -> List<ArchiveItem> = loadRow,
 ) : ViewModel() {
     private val rows = ParallelRows(viewModelScope, configuredRows, loadRow)
-    private var seasonIds: List<String>? = null
+    private var seasonRows: List<BrowseRow>? = null
     private var seasonsJob: Job? = null
 
     private val _state = MutableStateFlow(HomeUiState(rows = rows.state.value))
@@ -139,13 +139,12 @@ class HomeViewModel(
 
     /**
      * Re-reads which seasons are active (Home calls this each time it comes back on screen, since a TV can keep
-     * the app alive for days) and reloads the seasonal rows only when the set changed.
+     * the app alive for days) and reloads the seasonal rows only when they changed (which seasons, or a query).
      */
     fun refreshSeasons() {
         val now = seasonalRows()
-        val ids = now.map { it.id }
-        if (ids == seasonIds) return
-        seasonIds = ids
+        if (now == seasonRows) return
+        seasonRows = now
         seasonsJob?.cancel()
         val seasons = ParallelRows(viewModelScope, now, loadSeason)
         seasonsJob = viewModelScope.launch {

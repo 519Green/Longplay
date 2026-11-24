@@ -296,10 +296,36 @@ class CatalogLoaderTest {
             .containsExactly("Christmas", "Halloween", "Thanksgiving", "Easter", "New Year").inOrder()
     }
 
-    @Test fun seasonalRowsIncludeCommunityUploads() {
-        // Owner choice "B" (2026-11-23): curated collections alone leave most holidays under the 8-item minimum.
+    @Test fun seasonalRowsTakeCommunityUploadsSeparately() {
+        // Owner choice "B2" (2026-11-24): community uploads join the seasonal rows, but an uploader's license
+        // does not count for them, so they are kept apart from the curated collections.
         val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
-        catalog.seasonal.forEach { assertThat(it.query.collections).contains("opensource_movies") }
+        catalog.seasonal.forEach {
+            assertThat(it.community).containsExactly("opensource_movies")
+            assertThat(it.query.collections).doesNotContain("opensource_movies")
+        }
+    }
+
+    @Test fun parsesSeasonalCommunity() {
+        val catalog = loader.parse(
+            withSeasonal(
+                """{ "id": "w", "title": "W", "from": "12-01", "to": "12-31", "community": ["colC"],
+                     "query": { "collections": ["colA"], "subjectAny": ["snow"] } }""",
+            ),
+        )
+        assertThat(catalog.seasonal.single().community).containsExactly("colC")
+    }
+
+    @Test fun seasonalCommunityNeedsCuratedCollections() {
+        // Without collections the curated half would match all of the Archive.
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            loader.parse(
+                withSeasonal(
+                    """{ "id": "w", "title": "W", "from": "12-01", "to": "12-31", "community": ["colC"],
+                         "query": { "subjectAny": ["snow"] } }""",
+                ),
+            )
+        }
     }
 }
 

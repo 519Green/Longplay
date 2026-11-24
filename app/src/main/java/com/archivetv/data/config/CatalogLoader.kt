@@ -29,6 +29,8 @@ data class SeasonalDto(
     val from: String? = null,
     val to: String? = null,
     val easter: List<Int>? = null,
+    /** Open-upload collections searched with the same query; uploader licenses don't count there. */
+    val community: List<String> = emptyList(),
     val query: QueryDto,
 )
 
@@ -117,7 +119,10 @@ class CatalogLoader {
         }
         val seasonal = dto.seasonal.map { s ->
             require(seen.add(s.id)) { "duplicate id ${s.id}" }
-            SeasonalEntry(s.id, s.title, s.window(), s.query.toDomain())
+            require(s.community.isEmpty() || s.query.collections.isNotEmpty()) {
+                "${s.id}: community needs collections, or the curated half matches everything"
+            }
+            SeasonalEntry(s.id, s.title, s.window(), s.query.toDomain(), s.community)
         }
         return catalog.copy(home = home, seasonal = seasonal)
     }

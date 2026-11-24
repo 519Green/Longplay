@@ -56,4 +56,14 @@ object RightsRule {
         return "(licenseurl:* OR year:[$FIRST_YEAR TO $c] OR date:[$FIRST_YEAR-01-01 TO $c-12-31]" +
             " OR creator:$gov OR publisher:$gov OR sponsor:$gov)"
     }
+
+    /**
+     * Extra clause for open-upload collections, where anyone can attach a license: a license URL no longer counts
+     * there, so with [clause] and [passes] an item passes only by age or, without a license, a US-government
+     * producer. "(*:* -x)" because Archive search under-counts a bare "NOT x" nested inside an OR.
+     */
+    fun communityClause(today: LocalDate): String {
+        val c = cutoffYear(today)
+        return "((*:* -licenseurl:*) OR year:[$FIRST_YEAR TO $c] OR date:[$FIRST_YEAR-01-01 TO $c-12-31])"
+    }
 }

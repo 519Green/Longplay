@@ -1749,89 +1749,8 @@
       "title": "Christmas",
       "from": "12-01",
       "to": "12-31",
-      "query": {
-        "collections": [
-          "feature_films",
-          "prelinger",
-          "classic_tv",
-          "educationalfilms",
-          "avgeeks",
-          "silent_films",
-          "short_films",
-          "vintage_cartoons",
-          "classic_cartoons",
-          "more_animation",
-          "televisionmovies",
-          "universal_newsreels",
-          "opensource_movies"
-        ],
-        "subjectAny": [
-          "christmas",
-          "holidays"
-        ],
-        "mediatype": "movies"
-      }
-    },
-    {
-      "id": "halloween",
-      "title": "Halloween",
-      "from": "10-01",
-      "to": "10-31",
-      "query": {
-        "collections": [
-          "feature_films",
-          "prelinger",
-          "classic_tv",
-          "educationalfilms",
-          "avgeeks",
-          "silent_films",
-          "short_films",
-          "vintage_cartoons",
-          "classic_cartoons",
-          "more_animation",
-          "televisionmovies",
-          "universal_newsreels",
-          "opensource_movies"
-        ],
-        "subjectAny": [
-          "halloween"
-        ],
-        "mediatype": "movies"
-      }
-    },
-    {
-      "id": "thanksgiving",
-      "title": "Thanksgiving",
-      "from": "11-01",
-      "to": "11-30",
-      "query": {
-        "collections": [
-          "feature_films",
-          "prelinger",
-          "classic_tv",
-          "educationalfilms",
-          "avgeeks",
-          "silent_films",
-          "short_films",
-          "vintage_cartoons",
-          "classic_cartoons",
-          "more_animation",
-          "televisionmovies",
-          "universal_newsreels",
-          "opensource_movies"
-        ],
-        "subjectAny": [
-          "thanksgiving"
-        ],
-        "mediatype": "movies"
-      }
-    },
-    {
-      "id": "easter",
-      "title": "Easter",
-      "easter": [
-        -7,
-        1
+      "community": [
+        "opensource_movies"
       ],
       "query": {
         "collections": [
@@ -1846,20 +1765,23 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels",
-          "opensource_movies"
+          "universal_newsreels"
         ],
         "subjectAny": [
-          "easter"
+          "christmas",
+          "holidays"
         ],
         "mediatype": "movies"
       }
     },
     {
-      "id": "new-year",
-      "title": "New Year",
-      "from": "12-26",
-      "to": "01-06",
+      "id": "halloween",
+      "title": "Halloween",
+      "from": "10-01",
+      "to": "10-31",
+      "community": [
+        "opensource_movies"
+      ],
       "query": {
         "collections": [
           "feature_films",
@@ -1873,8 +1795,96 @@
           "classic_cartoons",
           "more_animation",
           "televisionmovies",
-          "universal_newsreels",
-          "opensource_movies"
+          "universal_newsreels"
+        ],
+        "subjectAny": [
+          "halloween"
+        ],
+        "mediatype": "movies"
+      }
+    },
+    {
+      "id": "thanksgiving",
+      "title": "Thanksgiving",
+      "from": "11-01",
+      "to": "11-30",
+      "community": [
+        "opensource_movies"
+      ],
+      "query": {
+        "collections": [
+          "feature_films",
+          "prelinger",
+          "classic_tv",
+          "educationalfilms",
+          "avgeeks",
+          "silent_films",
+          "short_films",
+          "vintage_cartoons",
+          "classic_cartoons",
+          "more_animation",
+          "televisionmovies",
+          "universal_newsreels"
+        ],
+        "subjectAny": [
+          "thanksgiving"
+        ],
+        "mediatype": "movies"
+      }
+    },
+    {
+      "id": "easter",
+      "title": "Easter",
+      "easter": [
+        -7,
+        1
+      ],
+      "community": [
+        "opensource_movies"
+      ],
+      "query": {
+        "collections": [
+          "feature_films",
+          "prelinger",
+          "classic_tv",
+          "educationalfilms",
+          "avgeeks",
+          "silent_films",
+          "short_films",
+          "vintage_cartoons",
+          "classic_cartoons",
+          "more_animation",
+          "televisionmovies",
+          "universal_newsreels"
+        ],
+        "subjectAny": [
+          "easter"
+        ],
+        "mediatype": "movies"
+      }
+    },
+    {
+      "id": "new-year",
+      "title": "New Year",
+      "from": "12-26",
+      "to": "01-06",
+      "community": [
+        "opensource_movies"
+      ],
+      "query": {
+        "collections": [
+          "feature_films",
+          "prelinger",
+          "classic_tv",
+          "educationalfilms",
+          "avgeeks",
+          "silent_films",
+          "short_films",
+          "vintage_cartoons",
+          "classic_cartoons",
+          "more_animation",
+          "televisionmovies",
+          "universal_newsreels"
         ],
         "subjectAny": [
           "new year"

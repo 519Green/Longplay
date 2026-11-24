@@ -11,6 +11,31 @@ class SearchQueryBuilderTest {
         "short_films OR cliffhangers OR prelinger OR educationalfilms)"
     private val community = "collection:(opensource_movies OR opensource)"
 
+    private val holiday = com.archivetv.domain.SeasonalEntry(
+        "fest", "Fest", com.archivetv.domain.SeasonWindow.Easter(0, 0),
+        CategoryQuery(collections = listOf("colA", "colB"), subjectAny = listOf("fest")),
+        community = listOf("colC"),
+    )
+
+    @Test fun seasonalWithoutCommunityIsThePlainQuery() {
+        val plain = holiday.copy(community = emptyList())
+        assertThat(b.seasonal(plain, communityRule = "RULE")).isEqualTo(b.render(plain.query))
+    }
+
+    @Test fun seasonalCommunityHalfCarriesTheRule() {
+        assertThat(b.seasonal(holiday, communityRule = "RULE")).isEqualTo(
+            "(collection:(colA OR colB) AND (subject:\"fest\") AND mediatype:movies) OR " +
+                "(collection:(colC) AND (subject:\"fest\") AND mediatype:movies AND RULE)",
+        )
+    }
+
+    @Test fun seasonalCommunityHalfIsPlainWithoutARule() {
+        assertThat(b.seasonal(holiday, communityRule = null)).isEqualTo(
+            "(collection:(colA OR colB) AND (subject:\"fest\") AND mediatype:movies) OR " +
+                "(collection:(colC) AND (subject:\"fest\") AND mediatype:movies)",
+        )
+    }
+
     @Test fun collectionQueryFiltersByCollection() {
         assertThat(b.collection("feature_films"))
             .isEqualTo("collection:(feature_films) AND mediatype:movies")

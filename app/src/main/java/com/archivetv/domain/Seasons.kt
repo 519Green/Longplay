@@ -12,8 +12,18 @@ sealed interface SeasonWindow {
     data class Easter(val startOffset: Int, val endOffset: Int) : SeasonWindow
 }
 
-/** One configured seasonal row: a calendar window and the catalog query that fills it. */
-data class SeasonalEntry(val id: String, val title: String, val window: SeasonWindow, val query: CategoryQuery)
+/**
+ * One configured seasonal row: a calendar window and the catalog query that fills it. [community] lists
+ * open-upload collections searched with the same query; with the rights filter on, an uploader's license does not
+ * count for them (see RightsRule.communityClause).
+ */
+data class SeasonalEntry(
+    val id: String,
+    val title: String,
+    val window: SeasonWindow,
+    val query: CategoryQuery,
+    val community: List<String> = emptyList(),
+)
 
 /** Western (Gregorian) Easter Sunday, by the anonymous Gregorian algorithm. */
 fun easterSunday(year: Int): LocalDate {
