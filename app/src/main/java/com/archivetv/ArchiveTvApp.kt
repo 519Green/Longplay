@@ -95,6 +95,11 @@ class AppContainer(app: Application) {
     }
 
     /** Drops every in-memory search result, so screens reload under a changed rights setting. */
+    /** Home's "Surprise me" doors: 40 items in random order from a leaf, through the filtered service. */
+    val surprise = com.archivetv.ui.common.SurprisePicker({ leaf ->
+        archiveRepository.browse(queryBuilder.render(leaf.query), com.archivetv.data.BrowseSort.RANDOM, 1, 40).items
+    })
+
     /** Which saved items the parental filter hides (Home's saved rows, My List). */
     val savedFilter = SavedFilter(archiveRepository::flaggedIds) { settings.hideAdult.value }
 

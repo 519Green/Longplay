@@ -27,6 +27,7 @@ import androidx.compose.ui.draw.clip
 import androidx.tv.material3.Button
 import com.archivetv.domain.ItemKind
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -99,6 +100,23 @@ fun HomeScreen(
     }
     val app = LocalContext.current.applicationContext as ArchiveTvApp
     val tiles = remember { browseTiles(app.container.catalog, onOpenGroup) }
+    val surpriseScope = androidx.compose.runtime.rememberCoroutineScope()
+    val surpriseTiles = remember {
+        val doors = com.archivetv.ui.common.surpriseDoors(app.container.catalog)
+        var busy = false
+        fun open(leaf: () -> com.archivetv.domain.CategoryNode.Leaf) {
+            if (busy) return
+            busy = true
+            surpriseScope.launch {
+                // A failed or empty pick leaves the viewer on Home; pressing again tries again.
+                runCatching { app.container.surprise.pick(leaf()) }.getOrNull()?.let(onItemClick)
+                busy = false
+            }
+        }
+        if (doors.isEmpty()) emptyList()
+        else listOf("Anything" to { open { doors.random().second } }) +
+            doors.map { (label, leaf) -> label to { open { leaf } } }
+    }
     HomeContent(
         continueWatching = state.continueWatching,
         favorites = state.favorites,
@@ -111,6 +129,7 @@ fun HomeScreen(
         seasonal = state.seasonal,
         onListen = onListen,
         browseTiles = tiles,
+        surpriseTiles = surpriseTiles,
         onItemClick = onItemClick,
         onRetry = viewModel::retry,
         onSeeAll = { onOpenLeaf(it.config.id) },
@@ -126,6 +145,7 @@ fun HomeContent(
     onItemClick: (ArchiveItem) -> Unit,
     onRetry: (Int) -> Unit,
     browseTiles: List<Pair<String, () -> Unit>> = emptyList(),
+    surpriseTiles: List<Pair<String, () -> Unit>> = emptyList(),
     onSeeAll: ((ContentRow) -> Unit)? = null,
     nextUp: List<NextUpCard> = emptyList(),
     onPlayFile: (String, Int) -> Unit = { _, _ -> },
@@ -197,6 +217,9 @@ fun HomeContent(
         }
         if (browseTiles.isNotEmpty()) {
             item(key = "browse") { TileRow("Browse", browseTiles) }
+        }
+        if (surpriseTiles.isNotEmpty()) {
+            item(key = "surprise") { TileRow("Surprise me", surpriseTiles) }
         }
         contentRows(rows, onItemClick, onRetry, onSeeAll)
     }

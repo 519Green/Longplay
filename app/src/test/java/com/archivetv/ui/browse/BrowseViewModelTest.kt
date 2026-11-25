@@ -59,6 +59,20 @@ class BrowseViewModelTest {
             pageSize = 2,
         )
 
+    @Test fun itemsRepeatedOnALaterPageAreDropped() = runTest {
+        // A random order can repeat an item across pages; the grid keys cards by identifier.
+        val pages = mapOf(1 to listOf("a", "b"), 2 to listOf("b", "c"))
+        val model = BrowseViewModel(
+            leaf = leaf, facetGroup = null, render = ::render,
+            browse = { _, _, page, _ ->
+                BrowsePage(pages.getValue(page).map { ArchiveItem(it, "T$it") }, 4)
+            },
+            count = { 0 }, pageSize = 2,
+        )
+        model.loadMore()
+        assertThat(model.state.value.items.map { it.identifier }).containsExactly("a", "b", "c").inOrder()
+    }
+
     @Test fun firstPageLoadsWithTotal() = runTest {
         val model = vm()
         val s = model.state.value

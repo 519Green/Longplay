@@ -37,6 +37,18 @@ class ArchiveRepositoryTest {
         assertThat(server.takeRequest().requestUrl!!.queryParameter("sort[]")).isEqualTo("num_reviews desc")
     }
 
+    @Test fun bestRatedBreaksTiesByReviewCount() = runTest {
+        server.enqueue(MockResponse().setBody("""{"response":{"numFound":0,"docs":[]}}"""))
+        repo.browse("collection:(x)", BrowseSort.BEST_RATED, page = 1, rows = 10)
+        assertThat(server.takeRequest().requestUrl!!.queryParameter("sort[]")).isEqualTo("avg_rating desc,num_reviews desc")
+    }
+
+    @Test fun randomUsesTheServerShuffle() = runTest {
+        server.enqueue(MockResponse().setBody("""{"response":{"numFound":0,"docs":[]}}"""))
+        repo.browse("collection:(x)", BrowseSort.RANDOM, page = 1, rows = 10)
+        assertThat(server.takeRequest().requestUrl!!.queryParameter("sort[]")).isEqualTo("random")
+    }
+
     @Test fun browseReturnsPageAndTotalAndSendsSortAndPage() = runTest {
         server.enqueue(MockResponse().setBody(
             """{"response":{"numFound":57,"docs":[{"identifier":"id1","title":"Film One","year":"1950"}]}}"""

@@ -33,10 +33,14 @@ data class BrowsePage(val items: List<ArchiveItem>, val total: Int)
 
 enum class BrowseSort(val label: String, val param: String) {
     POPULAR("Popular", "downloads desc"),
+    /** Rating alone puts one-review titles first, so ties go to the most reviewed. */
+    BEST_RATED("Best rated", "avg_rating desc,num_reviews desc"),
     MOST_REVIEWED("Most reviewed", "num_reviews desc"),
     TRENDING("Trending", "week desc"),
     RECENT("Recently added", "addeddate desc"),
     OLDEST("Oldest first", "year asc"),
+    /** Archive's shuffle; the order holds for a few minutes, so paging stays consistent. */
+    RANDOM("Random", "random"),
 }
 
 class ArchiveRepository(

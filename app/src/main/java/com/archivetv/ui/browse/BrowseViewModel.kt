@@ -108,13 +108,16 @@ class BrowseViewModel(
             runCatching { browse(query, sort, page, pageSize) }
                 .onSuccess { result ->
                     nextPage = page + 1
-                    emptyPages = if (result.items.isEmpty()) emptyPages + 1 else 0
+                    // A random order can repeat an item from an earlier page; the grid keys cards by identifier.
+                    val onScreen = _state.value.items.mapTo(HashSet()) { it.identifier }
+                    val added = result.items.filter { it.identifier !in onScreen }.distinctBy { it.identifier }
+                    emptyPages = if (added.isEmpty()) emptyPages + 1 else 0
                     val fetched = if (emptyPages >= MAX_EMPTY_PAGES) result.total else minOf(page * pageSize, result.total)
                     _state.update {
-                        it.copy(items = it.items + result.items, total = result.total, loading = false, fetched = fetched)
+                        it.copy(items = it.items + added, total = result.total, loading = false, fetched = fetched)
                     }
                     // A page the filter emptied adds no cards, so the grid would never ask for more.
-                    if (result.items.isEmpty() && !_state.value.endReached) loadPage()
+                    if (added.isEmpty() && !_state.value.endReached) loadPage()
                 }
                 .onFailure { _state.update { it.copy(loading = false, error = "Couldn't load. Select to retry.") } }
         }
