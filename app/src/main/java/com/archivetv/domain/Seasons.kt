@@ -15,7 +15,9 @@ sealed interface SeasonWindow {
 /**
  * One configured seasonal row: a calendar window and the catalog query that fills it. [community] lists
  * open-upload collections searched with the same query; with the rights filter on, an uploader's license does not
- * count for them (see RightsRule.communityClause).
+ * count for them (see RightsRule.communityClause). [oldOnly] limits the query to items from the public-domain years
+ * (RightsRule.ageClause). [pinned] are item identifiers added to the row as well: the owner's exception to the
+ * no-hand-picked-titles rule, for seasonal rows only (2026-11-24). Pinned items still pass the app's filters.
  */
 data class SeasonalEntry(
     val id: String,
@@ -23,6 +25,8 @@ data class SeasonalEntry(
     val window: SeasonWindow,
     val query: CategoryQuery,
     val community: List<String> = emptyList(),
+    val pinned: List<String> = emptyList(),
+    val oldOnly: Boolean = false,
 )
 
 /** Western (Gregorian) Easter Sunday, by the anonymous Gregorian algorithm. */

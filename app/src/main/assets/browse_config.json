@@ -1811,6 +1811,17 @@
       "community": [
         "opensource_movies"
       ],
+      "pinned": [
+        "his-mothers-thanksgiving-1910",
+        "silent-a-birds-a-bird",
+        "JerkyTurkey1945",
+        "bring-home-the-turkey",
+        "33-364",
+        "fc-fc-347",
+        "fc-fc-218",
+        "RoastTurkeyDressingYaYaAndLumplessGravy",
+        "1908-kinemacolor-the-harvest"
+      ],
       "query": {
         "collections": [
           "feature_films",
@@ -1842,6 +1853,20 @@
       "community": [
         "opensource_movies"
       ],
+      "pinned": [
+        "LesOeufsDePaques",
+        "silent-ben-hur-a-tale-of-the-christ-1925",
+        "the-king-of-kings_1927",
+        "JesusOfNazareth1916",
+        "ChristusGiulioAntamoro1916",
+        "LaFeePrintemps",
+        "HMEaster98541",
+        "Gould_can_5483_6_Kinograms_Newsreel",
+        "Gould_can_5483_7_Kinograms_Newsreel",
+        "an-easter-lily-1914",
+        "silent-la-vie-et-la-passion-de-jsus-christ-aka-the-passion-play",
+        "springtime_1929"
+      ],
       "query": {
         "collections": [
           "feature_films",
@@ -1871,6 +1896,15 @@
       "community": [
         "opensource_movies"
       ],
+      "pinned": [
+        "ThePhantomCarriage_201405",
+        "the-gold-rush-film-1925",
+        "silent-new-years-eve",
+        "silent-the-little-match-girl",
+        "0633_Gould_can_5423_2_11_31_17_10",
+        "un-un-v1-r104-s1-7"
+      ],
+      "oldOnly": true,
       "query": {
         "collections": [
           "feature_films",
@@ -1886,9 +1920,18 @@
           "televisionmovies",
           "universal_newsreels"
         ],
-        "subjectAny": [
-          "new year"
+        "titleAny": [
+          "new year's",
+          "new years"
         ],
+        "subjectAny": [
+          "new year",
+          "new years"
+        ],
+        "descriptionAny": [
+          "new year's eve"
+        ],
+        "match": "any",
         "mediatype": "movies"
       }
     }

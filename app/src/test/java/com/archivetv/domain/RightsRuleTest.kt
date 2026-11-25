@@ -57,6 +57,10 @@ class RightsRuleTest {
         assertThat(c).contains("sponsor:(")
     }
 
+    @Test fun ageClauseIsTheDateTestAlone() {
+        assertThat(RightsRule.ageClause(day)).isEqualTo("(year:[1880 TO 1930] OR date:[1880-01-01 TO 1930-12-31])")
+    }
+
     @Test fun communityClauseIgnoresLicensesAndKeepsAge() {
         // Archive search mishandles "NOT x" nested in an OR, hence the explicit match-all.
         assertThat(RightsRule.communityClause(day)).isEqualTo(

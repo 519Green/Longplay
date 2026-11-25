@@ -87,8 +87,11 @@ class AppContainer(app: Application) {
      */
     fun seasonalRows(today: java.time.LocalDate = java.time.LocalDate.now()): List<BrowseRow> {
         val rule = com.archivetv.domain.RightsRule.communityClause(today).takeIf { settings.openOnly.value }
-        return com.archivetv.domain.activeSeasons(today, catalog.seasonal)
-            .map { BrowseRow(it.id, it.title, queryBuilder.seasonal(it, rule), minItems = 8) }
+        val age = com.archivetv.domain.RightsRule.ageClause(today)
+        return com.archivetv.domain.activeSeasons(today, catalog.seasonal).map { entry ->
+            val query = queryBuilder.seasonal(entry, rule, age.takeIf { entry.oldOnly })
+            BrowseRow(entry.id, entry.title, query, minItems = 8)
+        }
     }
 
     /** Drops every in-memory search result, so screens reload under a changed rights setting. */

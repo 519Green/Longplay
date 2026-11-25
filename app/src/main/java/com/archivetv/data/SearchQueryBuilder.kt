@@ -77,23 +77,34 @@ class SearchQueryBuilder {
 
     /**
      * A seasonal row: its query over the curated collections, OR the same query over its community collections
-     * AND'ed with [communityRule] (null when the rights filter is off).
+     * AND'ed with [communityRule] (null when the rights filter is off), OR its pinned identifiers. [ageRule], when
+     * given, limits both queries (not the pins).
      */
-    fun seasonal(entry: SeasonalEntry, communityRule: String?): String {
-        val curated = render(entry.query)
-        if (entry.community.isEmpty()) return curated
-        val community = render(entry.query.copy(collections = entry.community)) +
-            (communityRule?.let { " AND $it" } ?: "")
-        return "($curated) OR ($community)"
+    fun seasonal(entry: SeasonalEntry, communityRule: String?, ageRule: String? = null): String {
+        val age = ageRule?.let { " AND $it" } ?: ""
+        val parts = buildList {
+            add(render(entry.query) + age)
+            if (entry.community.isNotEmpty()) {
+                add(render(entry.query.copy(collections = entry.community)) +
+                    (communityRule?.let { " AND $it" } ?: "") + age)
+            }
+            if (entry.pinned.isNotEmpty()) {
+                add("identifier:(" + entry.pinned.joinToString(" OR ") { it.replace(unsafeId, "") } + ")")
+            }
+        }
+        return parts.singleOrNull() ?: parts.joinToString(" OR ") { "($it)" }
     }
 
     private fun clauses(q: CategoryQuery): List<String> = buildList {
         if (q.collections.isNotEmpty()) add(anyOf(q.collections))
-        if (q.matchTitleOrSubject && q.titleAny.isNotEmpty() && q.subjectAny.isNotEmpty()) {
-            add(phrases("title", q.titleAny, close = false) + " OR " + phrases("subject", q.subjectAny, open = false))
+        val text = listOf("title" to q.titleAny, "subject" to q.subjectAny, "description" to q.descriptionAny)
+            .filter { it.second.isNotEmpty() }
+        if (q.matchTitleOrSubject && text.size > 1) {
+            add(text.joinToString(" OR ", "(", ")") { (field, values) -> phrases(field, values, false, false) })
         } else {
             if (q.subjectAny.isNotEmpty()) add(phrases("subject", q.subjectAny))
             if (q.titleAny.isNotEmpty()) add(phrases("title", q.titleAny))
+            if (q.descriptionAny.isNotEmpty()) add(phrases("description", q.descriptionAny))
         }
         if (q.creatorAny.isNotEmpty()) add(phrases("creator", q.creatorAny))
         if (q.sponsorAny.isNotEmpty()) add(phrases("sponsor", q.sponsorAny))

@@ -62,6 +62,12 @@ object RightsRule {
      * there, so with [clause] and [passes] an item passes only by age or, without a license, a US-government
      * producer. "(*:* -x)" because Archive search under-counts a bare "NOT x" nested inside an OR.
      */
+    /** Only the date test of [clause]: a year or date from 1880 to the cutoff. */
+    fun ageClause(today: LocalDate): String {
+        val c = cutoffYear(today)
+        return "(year:[$FIRST_YEAR TO $c] OR date:[$FIRST_YEAR-01-01 TO $c-12-31])"
+    }
+
     fun communityClause(today: LocalDate): String {
         val c = cutoffYear(today)
         return "((*:* -licenseurl:*) OR year:[$FIRST_YEAR TO $c] OR date:[$FIRST_YEAR-01-01 TO $c-12-31])"

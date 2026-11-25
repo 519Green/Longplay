@@ -31,6 +31,10 @@ data class SeasonalDto(
     val easter: List<Int>? = null,
     /** Open-upload collections searched with the same query; uploader licenses don't count there. */
     val community: List<String> = emptyList(),
+    /** Item identifiers added to the row (owner's exception for seasonal rows only). */
+    val pinned: List<String> = emptyList(),
+    /** Limit the query (not the pins) to items from the public-domain years. */
+    val oldOnly: Boolean = false,
     val query: QueryDto,
 )
 
@@ -60,6 +64,7 @@ data class QueryDto(
     val collections: List<String> = emptyList(),
     val subjectAny: List<String> = emptyList(),
     val titleAny: List<String> = emptyList(),
+    val descriptionAny: List<String> = emptyList(),
     val creatorAny: List<String> = emptyList(),
     val sponsorAny: List<String> = emptyList(),
     val subjectNone: List<String> = emptyList(),
@@ -122,7 +127,10 @@ class CatalogLoader {
             require(s.community.isEmpty() || s.query.collections.isNotEmpty()) {
                 "${s.id}: community needs collections, or the curated half matches everything"
             }
-            SeasonalEntry(s.id, s.title, s.window(), s.query.toDomain(), s.community)
+            require(s.pinned.all { it.isNotBlank() } && s.pinned.toSet().size == s.pinned.size) {
+                "${s.id}: pinned identifiers must be distinct and not blank"
+            }
+            SeasonalEntry(s.id, s.title, s.window(), s.query.toDomain(), s.community, s.pinned, s.oldOnly)
         }
         return catalog.copy(home = home, seasonal = seasonal)
     }
@@ -174,6 +182,7 @@ class CatalogLoader {
         collections = collections,
         subjectAny = subjectAny,
         titleAny = titleAny,
+        descriptionAny = descriptionAny,
         creatorAny = creatorAny,
         sponsorAny = sponsorAny,
         subjectNone = subjectNone,

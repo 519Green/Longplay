@@ -36,6 +36,37 @@ class SearchQueryBuilderTest {
         )
     }
 
+    @Test fun seasonalAddsAgeToQueriesAndPinsLast() {
+        val pinned = holiday.copy(pinned = listOf("pin-1", "pin 2!"))
+        assertThat(b.seasonal(pinned, communityRule = "RULE", ageRule = "AGE")).isEqualTo(
+            "(collection:(colA OR colB) AND (subject:\"fest\") AND mediatype:movies AND AGE) OR " +
+                "(collection:(colC) AND (subject:\"fest\") AND mediatype:movies AND RULE AND AGE) OR " +
+                "(identifier:(pin-1 OR pin2))",
+        )
+    }
+
+    @Test fun seasonalPinsAloneStillJoinTheQuery() {
+        val pinned = holiday.copy(community = emptyList(), pinned = listOf("pin-1"))
+        assertThat(b.seasonal(pinned, communityRule = null)).isEqualTo(
+            "(collection:(colA OR colB) AND (subject:\"fest\") AND mediatype:movies) OR (identifier:(pin-1))",
+        )
+    }
+
+    @Test fun matchAnyOrsTitleSubjectAndDescription() {
+        val q = CategoryQuery(
+            collections = listOf("colA"), titleAny = listOf("t"), subjectAny = listOf("s"),
+            descriptionAny = listOf("d"), matchTitleOrSubject = true,
+        )
+        assertThat(b.render(q)).isEqualTo(
+            "collection:(colA) AND (title:\"t\" OR subject:\"s\" OR description:\"d\") AND mediatype:movies",
+        )
+    }
+
+    @Test fun descriptionWithoutMatchAnyIsItsOwnClause() {
+        val q = CategoryQuery(subjectAny = listOf("s"), descriptionAny = listOf("d"))
+        assertThat(b.render(q)).isEqualTo("(subject:\"s\") AND (description:\"d\") AND mediatype:movies")
+    }
+
     @Test fun collectionQueryFiltersByCollection() {
         assertThat(b.collection("feature_films"))
             .isEqualTo("collection:(feature_films) AND mediatype:movies")

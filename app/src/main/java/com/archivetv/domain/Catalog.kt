@@ -8,13 +8,15 @@ data class CategoryQuery(
     val collections: List<String> = emptyList(),
     val subjectAny: List<String> = emptyList(),
     val titleAny: List<String> = emptyList(),
+    /** Phrases in the item description (uploader free text; seasonal rows pair it with an age limit). */
+    val descriptionAny: List<String> = emptyList(),
     val creatorAny: List<String> = emptyList(),
     val sponsorAny: List<String> = emptyList(),
     val subjectNone: List<String> = emptyList(),
     val excludeCollections: List<String> = emptyList(),
     val yearFrom: Int? = null,
     val yearTo: Int? = null,
-    /** When true, titleAny and subjectAny are OR'ed with each other (shows). */
+    /** When true, titleAny, subjectAny and descriptionAny are OR'ed with each other (shows, seasonal rows). */
     val matchTitleOrSubject: Boolean = false,
     /** IA mediatype: "movies" (all video, including TV) or "audio". */
     val mediatype: String = "movies",

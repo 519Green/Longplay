@@ -316,6 +316,43 @@ class CatalogLoaderTest {
         assertThat(catalog.seasonal.single().community).containsExactly("colC")
     }
 
+    @Test fun parsesSeasonalPinsAgeAndDescription() {
+        val entry = loader.parse(
+            withSeasonal(
+                """{ "id": "w", "title": "W", "from": "12-01", "to": "12-31", "pinned": ["pin-1", "pin-2"],
+                     "oldOnly": true,
+                     "query": { "collections": ["colA"], "descriptionAny": ["snow"], "match": "any" } }""",
+            ),
+        ).seasonal.single()
+        assertThat(entry.pinned).containsExactly("pin-1", "pin-2").inOrder()
+        assertThat(entry.oldOnly).isTrue()
+        assertThat(entry.query.descriptionAny).containsExactly("snow")
+    }
+
+    @Test fun rejectsDuplicatePins() {
+        org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
+            loader.parse(
+                withSeasonal(
+                    """{ "id": "w", "title": "W", "from": "12-01", "to": "12-31", "pinned": ["pin-1", "pin-1"],
+                         "query": { "collections": ["colA"] } }""",
+                ),
+            )
+        }
+    }
+
+    @Test fun bundledThinSeasonsArePinned() {
+        // Owner (2026-11-24): pinned identifiers are an exception for seasonal rows only, for the holidays that
+        // metadata alone leaves under the 8-item minimum.
+        val catalog = loader.parse(File("src/main/assets/browse_config.json").readText())
+        val byId = catalog.seasonal.associateBy { it.id }
+        listOf("thanksgiving", "easter", "new-year").forEach { assertThat(byId.getValue(it).pinned).isNotEmpty() }
+        assertThat(byId.getValue("christmas").pinned).isEmpty()
+        assertThat(byId.getValue("halloween").pinned).isEmpty()
+        assertThat(byId.getValue("new-year").oldOnly).isTrue()
+        assertThat(byId.getValue("new-year").query.descriptionAny).isNotEmpty()
+        assertThat(catalog.leaf("movies-popular")!!.query.descriptionAny).isEmpty()
+    }
+
     @Test fun seasonalCommunityNeedsCuratedCollections() {
         // Without collections the curated half would match all of the Archive.
         org.junit.Assert.assertThrows(IllegalArgumentException::class.java) {
