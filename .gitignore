@@ -8,3 +8,11 @@ local.properties
 *.iml
 .cxx/
 captures/
+
+# Kotlin compiler caches
+.kotlin/
+
+# Private working notes (kept locally, never published)
+.claude/
+WORKLOG.md
+docs/superpowers/
