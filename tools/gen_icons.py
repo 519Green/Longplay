@@ -86,6 +86,15 @@ def banner(w, h):
     return img.resize((w, h), Image.LANCZOS)
 
 
+def store(meta: Path):
+    """F-Droid / fastlane listing images: 512 px icon and the 1024 x 500 feature graphic."""
+    images = meta / "images"
+    images.mkdir(parents=True, exist_ok=True)
+    icon(512).save(images / "icon.png")
+    banner(1024, 500).convert("RGB").save(images / "featureGraphic.png")
+    print("written to", images)
+
+
 def main(res: Path):
     densities = {"mdpi": 1, "hdpi": 1.5, "xhdpi": 2, "xxhdpi": 3, "xxxhdpi": 4}
     for name, scale in densities.items():
@@ -102,4 +111,8 @@ def main(res: Path):
 
 
 if __name__ == "__main__":
-    main(Path(sys.argv[1]))
+    # gen_icons.py <res dir>  |  gen_icons.py --store <fastlane/metadata/android/en-US>
+    if sys.argv[1] == "--store":
+        store(Path(sys.argv[2]))
+    else:
+        main(Path(sys.argv[1]))

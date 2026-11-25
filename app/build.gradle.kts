@@ -10,7 +10,7 @@ android {
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.archivetv"
+        applicationId = "net.green519.longplay"
         minSdk = 23
         targetSdk = 35
         versionCode = 1

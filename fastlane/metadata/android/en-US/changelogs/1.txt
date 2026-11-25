@@ -1,0 +1,5 @@
+First release.
+- Films, classic TV, cartoons, newsreels and educational films from the Internet Archive, laid out for the remote
+- Audiobooks, old-time radio, 78s, LPs and live concert recordings, with background audio
+- Continue Watching, Next Up, My List, captions, seasonal rows and Surprise me
+- Public domain by default; adult titles hidden by default, behind a parental PIN
