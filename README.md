@@ -1,4 +1,14 @@
+<div align="center">
+
 # Longplay
+
+**Classic film, TV and radio from the Internet Archive, on your TV.**
+
+[![License: GPL-3.0-only](https://img.shields.io/badge/License-GPL--3.0--only-blue?style=for-the-badge)](LICENSE)
+[![Android TV](https://img.shields.io/badge/Android%20TV-API%2023%2B-3DDC84?style=for-the-badge&logo=android&logoColor=white)](#building)
+[![Buy me a coffee](https://img.shields.io/badge/Buy%20me%20a%20coffee-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/519green)
+
+</div>
 
 An Android TV app for the film and audio collections of the Internet Archive, laid out for the remote.
 
@@ -25,6 +35,15 @@ Requirements: JDK 17 and the Android SDK (API 35). Point `local.properties` at y
 ```
 
 Rows, sections and seasonal rows are configured in `app/src/main/assets/browse_config.json`.
+
+## Support
+
+Longplay is free, with no ads and no tracking. If it has made a few evenings better, you can buy me a coffee:
+
+<a href="https://buymeacoffee.com/519green"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" height="48"></a>
+
+Bug reports and ideas are just as welcome. To support the archive itself, donate at
+[archive.org/donate](https://archive.org/donate).
 
 ## License
 
